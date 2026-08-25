@@ -47,70 +47,137 @@ export default function Storefront() {
     orderText += `\n*Total: ₦${cartTotal.toLocaleString()}*\n\n_Powered by Crudhub_`
 
     const encodedMessage = encodeURIComponent(orderText)
-    let phone = merchant.phone_number.replace(/\D/g, '')
+    let phone = (merchant.contact_phone || merchant.phone_number || '').replace(/\D/g, '')
     if (!phone.startsWith('234')) phone = '234' + (phone.startsWith('0') ? phone.slice(1) : phone)
     window.open(`https://wa.me/${phone}?text=${encodedMessage}`, '_blank')
   }
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-xl font-semibold">Loading Crudhub Store...</div>
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-xl font-semibold bg-gray-50">Loading Store...</div>
   if (!merchant) return (
-    <div className="min-h-screen flex flex-col items-center justify-center">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
         <h2 className="text-3xl text-red-500 font-bold mb-2">Store not found!</h2>
         <p className="text-gray-500">No client exists at /{storeSlug}</p>
     </div>
   )
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans pb-20 overflow-x-hidden">
-      <header className="text-white p-6 shadow-md sticky top-0 z-10" style={{ backgroundColor: merchant.theme_color || '#000000' }}>
+    <div className="min-h-screen bg-gray-50 font-sans pb-24 overflow-x-hidden">
+      {/* Attractive Header Banner */}
+      <header className="text-white p-6 shadow-md sticky top-0 z-10 transition-colors" style={{ backgroundColor: merchant.theme_color || '#000000' }}>
         <div className="max-w-4xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-3">
-            {merchant.logo_url && <img src={merchant.logo_url} alt="Logo" className="h-12 w-12 rounded-full object-cover border-2 border-white/50 shadow-sm bg-white" />}
-            <h1 className="text-2xl sm:text-3xl font-bold">{merchant.business_name}</h1>
+            {merchant.logo_url ? (
+              <img src={merchant.logo_url} alt={merchant.business_name} className="h-12 w-12 rounded-full object-cover border-2 border-white/80 shadow-md bg-white" />
+            ) : (
+              <div className="h-12 w-12 rounded-full bg-white/20 flex items-center justify-center font-bold text-xl border border-white/30">
+                {merchant.business_name?.charAt(0)}
+              </div>
+            )}
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight">{merchant.business_name}</h1>
+              {merchant.location && <p className="text-xs text-white/80 font-medium">📍 {merchant.location}</p>}
+            </div>
           </div>
-          <button onClick={() => setIsCartOpen(true)} className="bg-white text-black px-4 py-2 rounded-full font-semibold shadow-sm transition-transform hover:scale-105">
-            🛒 Cart ({cart.length})
+          <button onClick={() => setIsCartOpen(true)} className="bg-white text-black px-4 py-2 rounded-full font-bold shadow-sm transition-transform hover:scale-105 text-sm flex items-center gap-2">
+            🛒 Cart <span className="bg-black text-white px-2 py-0.5 rounded-full text-xs">{cart.length}</span>
           </button>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto p-6">
-        <h2 className="text-2xl font-bold mb-6 text-gray-800">Our Catalog</h2>
-        {products.length === 0 ? (
-           <p className="text-gray-500">This client hasn't added any items yet.</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {products.map((product, index) => (
-              <div key={product.id + index} className={`bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col overflow-hidden hover:shadow-md transition-shadow ${product.in_stock === false && 'opacity-60'}`}>
-                {product.image_url ? (
-                  <img src={product.image_url} alt={product.name} className={`w-full h-48 object-cover bg-gray-100 ${product.in_stock === false && 'grayscale'}`} />
-                ) : (
-                  <div className="w-full h-48 bg-gray-100 flex items-center justify-center text-gray-400 font-medium">No Image</div>
-                )}
-                <div className="p-5 flex flex-col flex-1 justify-between">
-                  <div>
-                    <div className="flex justify-between items-start mb-2 gap-2">
-                      <h3 className="text-lg font-bold text-gray-900 leading-tight">{product.name}</h3>
-                      <span className="font-bold text-green-700 whitespace-nowrap">₦{product.price.toLocaleString()}</span>
-                    </div>
-                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">{product.description}</p>
-                    <span className="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded mb-4 font-medium">{product.category}</span>
-                  </div>
-                  
-                  {/* NEW: Disabled button if sold out */}
-                  <button 
-                    disabled={product.in_stock === false}
-                    onClick={() => handleAddToCart(product)} 
-                    className="w-full py-2.5 rounded-lg text-white font-medium shadow-sm active:scale-95 transition-opacity disabled:bg-gray-400 disabled:cursor-not-allowed mt-auto" 
-                    style={{ backgroundColor: product.in_stock !== false ? (merchant.theme_color || '#000000') : undefined }}
-                  >
-                    {product.in_stock !== false ? 'Add to Cart' : 'Sold Out'}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+      <main className="max-w-4xl mx-auto p-4 sm:p-6 space-y-8">
+        
+        {/* About Us Section (Only shown if client filled it) */}
+        {merchant.about_text && (
+          <section className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">About Us</h3>
+            <p className="text-gray-600 leading-relaxed text-sm sm:text-base whitespace-pre-line">{merchant.about_text}</p>
+          </section>
         )}
+
+        {/* Catalog Section */}
+        <section>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-bold text-gray-800">Our Catalog</h2>
+          </div>
+
+          {products.length === 0 ? (
+             <div className="bg-white rounded-2xl p-12 text-center border border-gray-100 text-gray-400">
+               <p>This store hasn't added any items to their catalog yet.</p>
+             </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {products.map((product, index) => (
+                <div key={product.id + index} className={`bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col overflow-hidden hover:shadow-md transition-shadow ${product.in_stock === false && 'opacity-60'}`}>
+                  {product.image_url ? (
+                    <img src={product.image_url} alt={product.name} className={`w-full h-48 object-cover bg-gray-100 ${product.in_stock === false && 'grayscale'}`} />
+                  ) : (
+                    <div className="w-full h-48 bg-gray-100 flex items-center justify-center text-gray-400 font-medium text-xs">No Image Available</div>
+                  )}
+                  <div className="p-5 flex flex-col flex-1 justify-between">
+                    <div>
+                      <div className="flex justify-between items-start mb-2 gap-2">
+                        <h3 className="text-lg font-bold text-gray-900 leading-tight">{product.name}</h3>
+                        <span className="font-bold text-green-700 whitespace-nowrap">₦{product.price.toLocaleString()}</span>
+                      </div>
+                      <p className="text-gray-600 text-sm mb-4 line-clamp-2">{product.description}</p>
+                      <span className="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded mb-4 font-medium">{product.category}</span>
+                    </div>
+                    
+                    <button 
+                      disabled={product.in_stock === false}
+                      onClick={() => handleAddToCart(product)} 
+                      className="w-full py-2.5 rounded-lg text-white font-bold shadow-sm active:scale-95 transition-opacity disabled:bg-gray-400 disabled:cursor-not-allowed mt-auto text-sm" 
+                      style={{ backgroundColor: product.in_stock !== false ? (merchant.theme_color || '#000000') : undefined }}
+                    >
+                      {product.in_stock !== false ? 'Add to Cart' : 'Sold Out'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Contact Us & Conditional Socials Footer Section */}
+        <section className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+          <div>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Contact Us</h3>
+            <div className="space-y-1 text-sm text-gray-600">
+              {merchant.contact_phone && <p>📞 Phone: <a href={`tel:${merchant.contact_phone}`} className="text-blue-600 hover:underline font-medium">{merchant.contact_phone}</a></p>}
+              {merchant.contact_email && <p>✉️ Email: <a href={`mailto:${merchant.contact_email}`} className="text-blue-600 hover:underline font-medium">{merchant.contact_email}</a></p>}
+              {merchant.location && <p>📍 Address: {merchant.location}</p>}
+              {!merchant.contact_phone && !merchant.contact_email && !merchant.location && <p className="text-gray-400 italic">No contact details provided.</p>}
+            </div>
+          </div>
+
+          {/* Conditional Social Media Icons (Only renders if field is filled) */}
+          {(merchant.facebook_url || merchant.instagram_url || merchant.tiktok_url || merchant.youtube_url || merchant.x_url || merchant.linkedin_url) && (
+            <div>
+              <h4 className="text-sm font-bold text-gray-800 mb-3">Connect With Us</h4>
+              <div className="flex flex-wrap gap-2">
+                {merchant.facebook_url && (
+                  <a href={merchant.facebook_url} target="_blank" rel="noreferrer" className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-90">Facebook</a>
+                )}
+                {merchant.instagram_url && (
+                  <a href={merchant.instagram_url} target="_blank" rel="noreferrer" className="bg-pink-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-90">Instagram</a>
+                )}
+                {merchant.tiktok_url && (
+                  <a href={merchant.tiktok_url} target="_blank" rel="noreferrer" className="bg-black text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-90">TikTok</a>
+                )}
+                {merchant.youtube_url && (
+                  <a href={merchant.youtube_url} target="_blank" rel="noreferrer" className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-90">YouTube</a>
+                )}
+                {merchant.x_url && (
+                  <a href={merchant.x_url} target="_blank" rel="noreferrer" className="bg-gray-900 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-90">X</a>
+                )}
+                {merchant.linkedin_url && (
+                  <a href={merchant.linkedin_url} target="_blank" rel="noreferrer" className="bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-90">LinkedIn</a>
+                )}
+              </div>
+            </div>
+          )}
+        </section>
+
       </main>
 
       {/* Cart Overlay & Panel */}
@@ -145,7 +212,7 @@ export default function Storefront() {
             <form id="checkout-form" onSubmit={handleSendOrder} className="space-y-4">
               <div><label className="block text-sm font-bold text-gray-700 mb-1">Your Name</label><input required className="w-full border p-2 rounded bg-gray-50 focus:bg-white" value={customerInfo.name} onChange={e => setCustomerInfo({...customerInfo, name: e.target.value})} /></div>
               <div><label className="block text-sm font-bold text-gray-700 mb-1">Delivery Address</label><textarea required className="w-full border p-2 rounded bg-gray-50 focus:bg-white" rows="3" value={customerInfo.address} onChange={e => setCustomerInfo({...customerInfo, address: e.target.value})}></textarea></div>
-              <div><label className="block text-sm font-bold text-gray-700 mb-1">Order Notes (Optional)</label><input className="w-full border p-2 rounded bg-gray-50 focus:bg-white" placeholder="e.g. Please make it extra spicy" value={customerInfo.notes} onChange={e => setCustomerInfo({...customerInfo, notes: e.target.value})} /></div>
+              <div><label className="block text-sm font-bold text-gray-700 mb-1">Order Notes (Optional)</label><input className="w-full border p-2 rounded bg-gray-50 focus:bg-white" placeholder="e.g. Please call upon arrival" value={customerInfo.notes} onChange={e => setCustomerInfo({...customerInfo, notes: e.target.value})} /></div>
             </form>
           )}
         </div>
