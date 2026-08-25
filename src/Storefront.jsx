@@ -12,6 +12,7 @@ export default function Storefront() {
   const [isCheckingOut, setIsCheckingOut] = useState(false)
   const [customerInfo, setCustomerInfo] = useState({ name: '', address: '', notes: '' })
   const [activeCategory, setActiveCategory] = useState('All')
+  const [searchQuery, setSearchQuery] = useState('')
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false)
 
   useEffect(() => {
@@ -44,7 +45,6 @@ export default function Storefront() {
     e.preventDefault()
     setIsSubmittingOrder(true)
 
-    // 1. Save the order to Supabase
     const { error } = await supabase.from('orders').insert([{
       merchant_id: merchant.id,
       customer_name: customerInfo.name,
@@ -61,7 +61,6 @@ export default function Storefront() {
       return
     }
 
-    // 2. Build and send the WhatsApp Message
     let orderText = `*New Order from ${customerInfo.name}* 🛒\n\n`
     orderText += `*Delivery Details:*\n📍 Address: ${customerInfo.address}\n📝 Notes: ${customerInfo.notes || 'None'}\n\n`
     orderText += `*Order Items:*\n`
@@ -73,7 +72,6 @@ export default function Storefront() {
     if (!phone.startsWith('234')) phone = '234' + (phone.startsWith('0') ? phone.slice(1) : phone)
     window.open(`https://wa.me/${phone}?text=${encodedMessage}`, '_blank')
 
-    // 3. Clear the cart and close checkout
     setCart([])
     setIsCheckingOut(false)
     setIsCartOpen(false)
@@ -82,7 +80,14 @@ export default function Storefront() {
   }
 
   const categories = ['All', ...new Set(products.map(p => p.category).filter(Boolean))]
-  const filteredProducts = activeCategory === 'All' ? products : products.filter(p => p.category === activeCategory)
+  
+  // Advanced filtering: filters by BOTH category and search query
+  const filteredProducts = products.filter(p => {
+    const matchesCategory = activeCategory === 'All' || p.category === activeCategory;
+    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()));
+    return matchesCategory && matchesSearch;
+  })
 
   if (loading) return <div className="min-h-screen flex items-center justify-center text-xl font-semibold bg-gray-50">Loading Store...</div>
   if (!merchant) return (
@@ -125,8 +130,21 @@ export default function Storefront() {
         )}
 
         <section>
-          <div className="flex justify-between items-center mb-4">
+          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
             <h2 className="text-2xl font-bold text-gray-800">Our Catalog</h2>
+            
+            {/* Real-time Search Bar */}
+            <div className="relative w-full md:w-72">
+              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">🔍</span>
+              <input 
+                type="text" 
+                placeholder="Search products..." 
+                className="w-full pl-10 pr-4 py-2 rounded-full border border-gray-200 focus:outline-none focus:ring-2 bg-white shadow-sm text-sm transition-shadow"
+                style={{ focusRingColor: merchant.theme_color || '#000000' }}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
           </div>
 
           {categories.length > 1 && (
@@ -150,7 +168,7 @@ export default function Storefront() {
 
           {filteredProducts.length === 0 ? (
              <div className="bg-white rounded-2xl p-12 text-center border border-gray-100 text-gray-400">
-               <p>No items found in this category.</p>
+               <p>{searchQuery ? `No items found matching "${searchQuery}"` : "No items found in this category."}</p>
              </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
