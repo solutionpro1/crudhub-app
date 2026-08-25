@@ -12,8 +12,7 @@ export default function Admin() {
   const [activeView, setActiveView] = useState('list')
   const [selectedMerchant, setSelectedMerchant] = useState(null)
 
-  // NEW: Added pin_code to the new client state
-  const [newMerchant, setNewMerchant] = useState({ business_name: '', slug: '', phone_number: '', email: '', pin_code: '1234', business_type: 'food', theme_color: '#000000' })
+  const [newMerchant, setNewMerchant] = useState({ business_name: '', slug: '', phone_number: '', pin_code: '1234' })
   const [newProduct, setNewProduct] = useState({ name: '', description: '', price: '', category: '' })
 
   const [logoFile, setLogoFile] = useState(null)
@@ -63,12 +62,15 @@ export default function Admin() {
 
   async function handleCreateMerchant(e) {
     e.preventDefault()
-    const { error } = await supabase.from('merchants').insert([newMerchant])
+    const { error } = await supabase.from('merchants').insert([{
+      ...newMerchant,
+      theme_color: '#000000'
+    }])
     if (!error) {
       alert('Client created successfully!')
       fetchMerchants()
       setActiveView('list')
-      setNewMerchant({ business_name: '', slug: '', phone_number: '', email: '', pin_code: '1234', business_type: 'food', theme_color: '#000000' })
+      setNewMerchant({ business_name: '', slug: '', phone_number: '', pin_code: '1234' })
     } else { alert('Error: ' + error.message) }
   }
 
@@ -83,7 +85,7 @@ export default function Admin() {
     const { error } = await supabase.from('merchants').update({ 
       theme_color: selectedMerchant.theme_color,
       logo_url: logo_url,
-      pin_code: selectedMerchant.pin_code // NEW: Saves updated PIN
+      pin_code: selectedMerchant.pin_code
     }).eq('id', selectedMerchant.id)
     
     if (!error) {
@@ -169,13 +171,13 @@ export default function Admin() {
           <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 max-w-2xl">
             <h2 className="text-xl font-bold text-gray-800 mb-4">Register a New Client</h2>
             <form onSubmit={handleCreateMerchant} className="space-y-4">
-              <div><label className="block text-sm font-bold">Business Name</label><input required className="w-full border p-2 rounded" onChange={e => setNewMerchant({...newMerchant, business_name: e.target.value})} /></div>
-              <div><label className="block text-sm font-bold">Client Email</label><input required type="email" placeholder="client@example.com" className="w-full border p-2 rounded" onChange={e => setNewMerchant({...newMerchant, email: e.target.value})} /></div>
-              <div><label className="block text-sm font-bold">URL Slug (e.g. mamas-kitchen)</label><input required className="w-full border p-2 rounded" onChange={e => setNewMerchant({...newMerchant, slug: e.target.value.toLowerCase()})} /></div>
-              <div><label className="block text-sm font-bold">WhatsApp Number</label><input required className="w-full border p-2 rounded" placeholder="2348012345678" onChange={e => setNewMerchant({...newMerchant, phone_number: e.target.value})} /></div>
-              {/* NEW: Admin sets the PIN on creation */}
-              <div><label className="block text-sm font-bold">Manager PIN</label><input required maxLength="4" className="w-full border p-2 rounded" placeholder="1234" value={newMerchant.pin_code} onChange={e => setNewMerchant({...newMerchant, pin_code: e.target.value})} /></div>
-              <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded font-bold w-full">Create Space</button>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div><label className="block text-sm font-bold mb-1">Business Name</label><input required className="w-full border p-2 rounded" placeholder="e.g. Emily's Parfume" value={newMerchant.business_name} onChange={e => setNewMerchant({...newMerchant, business_name: e.target.value})} /></div>
+                <div><label className="block text-sm font-bold mb-1">URL Slug</label><input required className="w-full border p-2 rounded" placeholder="e.g. emilys-parfume" value={newMerchant.slug} onChange={e => setNewMerchant({...newMerchant, slug: e.target.value.toLowerCase()})} /></div>
+                <div><label className="block text-sm font-bold mb-1">WhatsApp Number</label><input required type="tel" className="w-full border p-2 rounded" placeholder="2348012345678" value={newMerchant.phone_number} onChange={e => setNewMerchant({...newMerchant, phone_number: e.target.value})} /></div>
+                <div><label className="block text-sm font-bold mb-1">Manager PIN</label><input required maxLength="4" className="w-full border p-2 rounded" placeholder="1234" value={newMerchant.pin_code} onChange={e => setNewMerchant({...newMerchant, pin_code: e.target.value})} /></div>
+              </div>
+              <button type="submit" className="bg-green-600 text-white px-4 py-3 mt-2 rounded font-bold w-full">Create Space</button>
             </form>
           </div>
         )}
@@ -187,12 +189,11 @@ export default function Admin() {
               <form onSubmit={handleUpdateBrand} className="space-y-4">
                 <div>
                   <label className="block text-sm font-bold mb-2">Theme Color</label>
-                  <input type="color" value={selectedMerchant.theme_color} onChange={e => setSelectedMerchant({...selectedMerchant, theme_color: e.target.value})} className="w-full h-12 rounded cursor-pointer" />
+                  <input type="color" value={selectedMerchant.theme_color || '#000000'} onChange={e => setSelectedMerchant({...selectedMerchant, theme_color: e.target.value})} className="w-full h-12 rounded cursor-pointer" />
                 </div>
-                {/* NEW: Admin can reset the client's PIN */}
                 <div>
                   <label className="block text-sm font-bold mb-2">Manager PIN</label>
-                  <input required maxLength="4" className="w-full border p-2 rounded bg-gray-50" value={selectedMerchant.pin_code} onChange={e => setSelectedMerchant({...selectedMerchant, pin_code: e.target.value})} />
+                  <input required maxLength="4" className="w-full border p-2 rounded bg-gray-50" value={selectedMerchant.pin_code || ''} onChange={e => setSelectedMerchant({...selectedMerchant, pin_code: e.target.value})} />
                 </div>
                 <div>
                   <label className="block text-sm font-bold mb-2">Business Logo</label>
