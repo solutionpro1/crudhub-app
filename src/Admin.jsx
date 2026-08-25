@@ -12,6 +12,7 @@ export default function Admin() {
   const [activeView, setActiveView] = useState('list')
   const [selectedMerchant, setSelectedMerchant] = useState(null)
 
+  // WhatsApp number (phone_number) is now in the state
   const [newMerchant, setNewMerchant] = useState({ business_name: '', slug: '', phone_number: '', pin_code: '1234' })
   const [newProduct, setNewProduct] = useState({ name: '', description: '', price: '', category: '' })
 
@@ -174,7 +175,10 @@ export default function Admin() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div><label className="block text-sm font-bold mb-1">Business Name</label><input required className="w-full border p-2 rounded" placeholder="e.g. Emily's Parfume" value={newMerchant.business_name} onChange={e => setNewMerchant({...newMerchant, business_name: e.target.value})} /></div>
                 <div><label className="block text-sm font-bold mb-1">URL Slug</label><input required className="w-full border p-2 rounded" placeholder="e.g. emilys-parfume" value={newMerchant.slug} onChange={e => setNewMerchant({...newMerchant, slug: e.target.value.toLowerCase()})} /></div>
+                
+                {/* NEW WHATSAPP FIELD IS RIGHT HERE */}
                 <div><label className="block text-sm font-bold mb-1">WhatsApp Number</label><input required type="tel" className="w-full border p-2 rounded" placeholder="2348012345678" value={newMerchant.phone_number} onChange={e => setNewMerchant({...newMerchant, phone_number: e.target.value})} /></div>
+                
                 <div><label className="block text-sm font-bold mb-1">Manager PIN</label><input required maxLength="4" className="w-full border p-2 rounded" placeholder="1234" value={newMerchant.pin_code} onChange={e => setNewMerchant({...newMerchant, pin_code: e.target.value})} /></div>
               </div>
               <button type="submit" className="bg-green-600 text-white px-4 py-3 mt-2 rounded font-bold w-full">Create Space</button>
