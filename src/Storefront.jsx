@@ -70,18 +70,20 @@ export default function Storefront() {
     const encodedMessage = encodeURIComponent(orderText)
     let phone = (merchant.contact_phone || merchant.phone_number || '').replace(/\D/g, '')
     if (!phone.startsWith('234')) phone = '234' + (phone.startsWith('0') ? phone.slice(1) : phone)
-    window.open(`https://wa.me/${phone}?text=${encodedMessage}`, '_blank')
-
+    
+    // Clear cart and state BEFORE redirecting
     setCart([])
     setIsCheckingOut(false)
     setIsCartOpen(false)
     setCustomerInfo({ name: '', address: '', notes: '' })
     setIsSubmittingOrder(false)
+
+    // Redirect the current window directly to bypass mobile popup blockers
+    window.location.href = `https://wa.me/${phone}?text=${encodedMessage}`
   }
 
   const categories = ['All', ...new Set(products.map(p => p.category).filter(Boolean))]
   
-  // Advanced filtering: filters by BOTH category and search query
   const filteredProducts = products.filter(p => {
     const matchesCategory = activeCategory === 'All' || p.category === activeCategory;
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -133,7 +135,6 @@ export default function Storefront() {
           <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
             <h2 className="text-2xl font-bold text-gray-800">Our Catalog</h2>
             
-            {/* Real-time Search Bar */}
             <div className="relative w-full md:w-72">
               <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">🔍</span>
               <input 
