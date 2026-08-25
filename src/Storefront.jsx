@@ -10,7 +10,10 @@ export default function Storefront() {
   const [cart, setCart] = useState([])
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [isCheckingOut, setIsCheckingOut] = useState(false)
-  const [customerInfo, setCustomerInfo] = useState({ name: '', address: '', notes: '' })
+  
+  // Added 'phone' to the customer info state
+  const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '', address: '', notes: '' })
+  
   const [activeCategory, setActiveCategory] = useState('All')
   const [searchQuery, setSearchQuery] = useState('')
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false)
@@ -45,9 +48,11 @@ export default function Storefront() {
     e.preventDefault()
     setIsSubmittingOrder(true)
 
+    // Send the customer_phone to the database!
     const { error } = await supabase.from('orders').insert([{
       merchant_id: merchant.id,
       customer_name: customerInfo.name,
+      customer_phone: customerInfo.phone,
       customer_address: customerInfo.address,
       customer_notes: customerInfo.notes,
       items: cart,
@@ -62,7 +67,7 @@ export default function Storefront() {
     }
 
     let orderText = `*New Order from ${customerInfo.name}* 🛒\n\n`
-    orderText += `*Delivery Details:*\n📍 Address: ${customerInfo.address}\n📝 Notes: ${customerInfo.notes || 'None'}\n\n`
+    orderText += `*Delivery Details:*\n📞 Phone: ${customerInfo.phone}\n📍 Address: ${customerInfo.address}\n📝 Notes: ${customerInfo.notes || 'None'}\n\n`
     orderText += `*Order Items:*\n`
     cart.forEach((item, index) => { orderText += `${index + 1}. ${item.name} - ₦${item.price.toLocaleString()}\n` })
     orderText += `\n*Total: ₦${cartTotal.toLocaleString()}*\n\n_Powered by Crudhub_`
@@ -71,14 +76,12 @@ export default function Storefront() {
     let phone = (merchant.contact_phone || merchant.phone_number || '').replace(/\D/g, '')
     if (!phone.startsWith('234')) phone = '234' + (phone.startsWith('0') ? phone.slice(1) : phone)
     
-    // Clear cart and state BEFORE redirecting
     setCart([])
     setIsCheckingOut(false)
     setIsCartOpen(false)
-    setCustomerInfo({ name: '', address: '', notes: '' })
+    setCustomerInfo({ name: '', phone: '', address: '', notes: '' })
     setIsSubmittingOrder(false)
 
-    // Redirect the current window directly to bypass mobile popup blockers
     window.location.href = `https://wa.me/${phone}?text=${encodedMessage}`
   }
 
@@ -262,6 +265,10 @@ export default function Storefront() {
           ) : (
             <form id="checkout-form" onSubmit={handleSendOrder} className="space-y-4">
               <div><label className="block text-sm font-bold text-gray-700 mb-1">Your Name</label><input required className="w-full border p-2 rounded bg-gray-50 focus:bg-white" value={customerInfo.name} onChange={e => setCustomerInfo({...customerInfo, name: e.target.value})} /></div>
+              
+              {/* NEW PHONE NUMBER FIELD */}
+              <div><label className="block text-sm font-bold text-gray-700 mb-1">Phone Number</label><input required type="tel" className="w-full border p-2 rounded bg-gray-50 focus:bg-white" placeholder="08012345678" value={customerInfo.phone} onChange={e => setCustomerInfo({...customerInfo, phone: e.target.value})} /></div>
+              
               <div><label className="block text-sm font-bold text-gray-700 mb-1">Delivery Address</label><textarea required className="w-full border p-2 rounded bg-gray-50 focus:bg-white" rows="3" value={customerInfo.address} onChange={e => setCustomerInfo({...customerInfo, address: e.target.value})}></textarea></div>
               <div><label className="block text-sm font-bold text-gray-700 mb-1">Order Notes (Optional)</label><input className="w-full border p-2 rounded bg-gray-50 focus:bg-white" placeholder="e.g. Please call upon arrival" value={customerInfo.notes} onChange={e => setCustomerInfo({...customerInfo, notes: e.target.value})} /></div>
             </form>
