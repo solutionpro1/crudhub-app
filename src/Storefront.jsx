@@ -11,6 +11,9 @@ export default function Storefront() {
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [isCheckingOut, setIsCheckingOut] = useState(false)
   const [customerInfo, setCustomerInfo] = useState({ name: '', address: '', notes: '' })
+  
+  // New state for Category Filtering
+  const [activeCategory, setActiveCategory] = useState('All')
 
   useEffect(() => {
     async function fetchStoreData() {
@@ -52,6 +55,12 @@ export default function Storefront() {
     window.open(`https://wa.me/${phone}?text=${encodedMessage}`, '_blank')
   }
 
+  // Generate unique categories for the filter ribbon
+  const categories = ['All', ...new Set(products.map(p => p.category).filter(Boolean))]
+  
+  // Filter products based on active category
+  const filteredProducts = activeCategory === 'All' ? products : products.filter(p => p.category === activeCategory)
+
   if (loading) return <div className="min-h-screen flex items-center justify-center text-xl font-semibold bg-gray-50">Loading Store...</div>
   if (!merchant) return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
@@ -62,7 +71,6 @@ export default function Storefront() {
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans pb-24 overflow-x-hidden">
-      {/* Attractive Header Banner */}
       <header className="text-white p-6 shadow-md sticky top-0 z-10 transition-colors" style={{ backgroundColor: merchant.theme_color || '#000000' }}>
         <div className="max-w-4xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-3">
@@ -86,7 +94,6 @@ export default function Storefront() {
 
       <main className="max-w-4xl mx-auto p-4 sm:p-6 space-y-8">
         
-        {/* About Us Section (Only shown if client filled it) */}
         {merchant.about_text && (
           <section className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-2">About Us</h3>
@@ -94,19 +101,38 @@ export default function Storefront() {
           </section>
         )}
 
-        {/* Catalog Section */}
         <section>
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-bold text-gray-800">Our Catalog</h2>
           </div>
 
-          {products.length === 0 ? (
+          {/* Category Filter Ribbon */}
+          {categories.length > 1 && (
+            <div className="flex gap-2 overflow-x-auto pb-4 mb-2 scrollbar-hide">
+              {categories.map((cat, index) => (
+                <button
+                  key={index}
+                  onClick={() => setActiveCategory(cat)}
+                  className={`whitespace-nowrap px-5 py-2 rounded-full text-sm font-bold transition-all border ${
+                    activeCategory === cat 
+                      ? 'text-white shadow-sm' 
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  }`}
+                  style={activeCategory === cat ? { backgroundColor: merchant.theme_color || '#000000', borderColor: merchant.theme_color || '#000000' } : {}}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {filteredProducts.length === 0 ? (
              <div className="bg-white rounded-2xl p-12 text-center border border-gray-100 text-gray-400">
-               <p>This store hasn't added any items to their catalog yet.</p>
+               <p>No items found in this category.</p>
              </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {products.map((product, index) => (
+              {filteredProducts.map((product, index) => (
                 <div key={product.id + index} className={`bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col overflow-hidden hover:shadow-md transition-shadow ${product.in_stock === false && 'opacity-60'}`}>
                   {product.image_url ? (
                     <img src={product.image_url} alt={product.name} className={`w-full h-48 object-cover bg-gray-100 ${product.in_stock === false && 'grayscale'}`} />
@@ -150,29 +176,16 @@ export default function Storefront() {
             </div>
           </div>
 
-          {/* Conditional Social Media Icons (Only renders if field is filled) */}
           {(merchant.facebook_url || merchant.instagram_url || merchant.tiktok_url || merchant.youtube_url || merchant.x_url || merchant.linkedin_url) && (
             <div>
               <h4 className="text-sm font-bold text-gray-800 mb-3">Connect With Us</h4>
               <div className="flex flex-wrap gap-2">
-                {merchant.facebook_url && (
-                  <a href={merchant.facebook_url} target="_blank" rel="noreferrer" className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-90">Facebook</a>
-                )}
-                {merchant.instagram_url && (
-                  <a href={merchant.instagram_url} target="_blank" rel="noreferrer" className="bg-pink-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-90">Instagram</a>
-                )}
-                {merchant.tiktok_url && (
-                  <a href={merchant.tiktok_url} target="_blank" rel="noreferrer" className="bg-black text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-90">TikTok</a>
-                )}
-                {merchant.youtube_url && (
-                  <a href={merchant.youtube_url} target="_blank" rel="noreferrer" className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-90">YouTube</a>
-                )}
-                {merchant.x_url && (
-                  <a href={merchant.x_url} target="_blank" rel="noreferrer" className="bg-gray-900 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-90">X</a>
-                )}
-                {merchant.linkedin_url && (
-                  <a href={merchant.linkedin_url} target="_blank" rel="noreferrer" className="bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-90">LinkedIn</a>
-                )}
+                {merchant.facebook_url && <a href={merchant.facebook_url} target="_blank" rel="noreferrer" className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-90">Facebook</a>}
+                {merchant.instagram_url && <a href={merchant.instagram_url} target="_blank" rel="noreferrer" className="bg-pink-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-90">Instagram</a>}
+                {merchant.tiktok_url && <a href={merchant.tiktok_url} target="_blank" rel="noreferrer" className="bg-black text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-90">TikTok</a>}
+                {merchant.youtube_url && <a href={merchant.youtube_url} target="_blank" rel="noreferrer" className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-90">YouTube</a>}
+                {merchant.x_url && <a href={merchant.x_url} target="_blank" rel="noreferrer" className="bg-gray-900 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-90">X</a>}
+                {merchant.linkedin_url && <a href={merchant.linkedin_url} target="_blank" rel="noreferrer" className="bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-90">LinkedIn</a>}
               </div>
             </div>
           )}
