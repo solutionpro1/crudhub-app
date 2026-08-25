@@ -11,9 +11,8 @@ export default function Storefront() {
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [isCheckingOut, setIsCheckingOut] = useState(false)
   const [customerInfo, setCustomerInfo] = useState({ name: '', address: '', notes: '' })
-  
-  // New state for Category Filtering
   const [activeCategory, setActiveCategory] = useState('All')
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false)
 
   useEffect(() => {
     async function fetchStoreData() {
@@ -41,8 +40,28 @@ export default function Storefront() {
   }
   const cartTotal = cart.reduce((total, item) => total + Number(item.price), 0)
 
-  const handleSendOrder = (e) => {
+  const handleSendOrder = async (e) => {
     e.preventDefault()
+    setIsSubmittingOrder(true)
+
+    // 1. Save the order to Supabase
+    const { error } = await supabase.from('orders').insert([{
+      merchant_id: merchant.id,
+      customer_name: customerInfo.name,
+      customer_address: customerInfo.address,
+      customer_notes: customerInfo.notes,
+      items: cart,
+      total_amount: cartTotal,
+      status: 'Pending'
+    }])
+
+    if (error) {
+      alert('There was an issue processing your order. Please try again.')
+      setIsSubmittingOrder(false)
+      return
+    }
+
+    // 2. Build and send the WhatsApp Message
     let orderText = `*New Order from ${customerInfo.name}* 🛒\n\n`
     orderText += `*Delivery Details:*\n📍 Address: ${customerInfo.address}\n📝 Notes: ${customerInfo.notes || 'None'}\n\n`
     orderText += `*Order Items:*\n`
@@ -53,12 +72,16 @@ export default function Storefront() {
     let phone = (merchant.contact_phone || merchant.phone_number || '').replace(/\D/g, '')
     if (!phone.startsWith('234')) phone = '234' + (phone.startsWith('0') ? phone.slice(1) : phone)
     window.open(`https://wa.me/${phone}?text=${encodedMessage}`, '_blank')
+
+    // 3. Clear the cart and close checkout
+    setCart([])
+    setIsCheckingOut(false)
+    setIsCartOpen(false)
+    setCustomerInfo({ name: '', address: '', notes: '' })
+    setIsSubmittingOrder(false)
   }
 
-  // Generate unique categories for the filter ribbon
   const categories = ['All', ...new Set(products.map(p => p.category).filter(Boolean))]
-  
-  // Filter products based on active category
   const filteredProducts = activeCategory === 'All' ? products : products.filter(p => p.category === activeCategory)
 
   if (loading) return <div className="min-h-screen flex items-center justify-center text-xl font-semibold bg-gray-50">Loading Store...</div>
@@ -106,7 +129,6 @@ export default function Storefront() {
             <h2 className="text-2xl font-bold text-gray-800">Our Catalog</h2>
           </div>
 
-          {/* Category Filter Ribbon */}
           {categories.length > 1 && (
             <div className="flex gap-2 overflow-x-auto pb-4 mb-2 scrollbar-hide">
               {categories.map((cat, index) => (
@@ -164,7 +186,6 @@ export default function Storefront() {
           )}
         </section>
 
-        {/* Contact Us & Conditional Socials Footer Section */}
         <section className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
           <div>
             <h3 className="text-lg font-bold text-gray-900 mb-2">Contact Us</h3>
@@ -190,10 +211,8 @@ export default function Storefront() {
             </div>
           )}
         </section>
-
       </main>
 
-      {/* Cart Overlay & Panel */}
       <div className={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 ${isCartOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`} onClick={() => setIsCartOpen(false)}></div>
       <div className={`fixed top-0 right-0 h-full w-full sm:w-96 bg-white shadow-2xl z-50 transform transition-transform duration-300 flex flex-col ${isCartOpen ? 'translate-x-0' : 'translate-x-full'}`}>
         <div className="p-5 border-b border-gray-100 flex justify-between items-center">
@@ -240,8 +259,10 @@ export default function Storefront() {
             </button>
           ) : (
             <div className="flex gap-2">
-              <button onClick={() => setIsCheckingOut(false)} className="w-1/3 py-3 rounded-lg bg-gray-200 text-gray-800 font-bold hover:bg-gray-300 transition-colors">Back</button>
-              <button type="submit" form="checkout-form" className="w-2/3 py-3 rounded-lg text-white font-bold text-lg shadow-sm hover:opacity-90 active:scale-95 flex items-center justify-center gap-2" style={{ backgroundColor: merchant.theme_color || '#000000' }}><span>Send to WhatsApp</span> 📱</button>
+              <button type="button" onClick={() => setIsCheckingOut(false)} className="w-1/3 py-3 rounded-lg bg-gray-200 text-gray-800 font-bold hover:bg-gray-300 transition-colors">Back</button>
+              <button type="submit" form="checkout-form" disabled={isSubmittingOrder} className="w-2/3 py-3 rounded-lg text-white font-bold text-lg shadow-sm hover:opacity-90 active:scale-95 flex items-center justify-center gap-2 disabled:bg-gray-400" style={{ backgroundColor: isSubmittingOrder ? undefined : (merchant.theme_color || '#000000') }}>
+                <span>{isSubmittingOrder ? 'Processing...' : 'Send to WhatsApp'}</span> 📱
+              </button>
             </div>
           )}
         </div>
