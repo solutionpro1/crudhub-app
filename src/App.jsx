@@ -8,7 +8,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/admin" element={<Admin />} />
+        <Route path="/admin" element={<SuperAdmin />} />
         <Route path="/admin" element={<SuperAdmin />} />
         {/* NEW: The client's management portal */}
         <Route path="/:storeSlug/manage" element={<MerchantPortal />} />
