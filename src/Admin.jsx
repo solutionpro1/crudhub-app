@@ -9,10 +9,10 @@ export default function Admin() {
 
   const [merchants, setMerchants] = useState([])
   const [products, setProducts] = useState([])
+  const [allProductsCount, setAllProductsCount] = useState(0)
   const [activeView, setActiveView] = useState('list')
   const [selectedMerchant, setSelectedMerchant] = useState(null)
 
-  // WhatsApp number (phone_number) is now in the state
   const [newMerchant, setNewMerchant] = useState({ business_name: '', slug: '', phone_number: '', pin_code: '1234' })
   const [newProduct, setNewProduct] = useState({ name: '', description: '', price: '', category: '' })
 
@@ -29,11 +29,21 @@ export default function Admin() {
     return () => subscription.unsubscribe()
   }, [])
 
-  useEffect(() => { if (session) fetchMerchants() }, [session])
+  useEffect(() => { 
+    if (session) {
+      fetchMerchants()
+      fetchPlatformStats()
+    } 
+  }, [session])
 
   async function fetchMerchants() {
     const { data } = await supabase.from('merchants').select('*').order('created_at', { ascending: false })
     setMerchants(data || [])
+  }
+
+  async function fetchPlatformStats() {
+    const { count } = await supabase.from('products').select('*', { count: 'exact', head: true })
+    setAllProductsCount(count || 0)
   }
 
   async function fetchProducts(merchantId) {
@@ -63,16 +73,20 @@ export default function Admin() {
 
   async function handleCreateMerchant(e) {
     e.preventDefault()
-    const { error } = await supabase.from('merchants').insert([{
-      ...newMerchant,
-      theme_color: '#000000'
-    }])
+    const { error } = await supabase.from('merchants').insert([{ ...newMerchant, theme_color: '#000000' }])
     if (!error) {
       alert('Client created successfully!')
       fetchMerchants()
       setActiveView('list')
       setNewMerchant({ business_name: '', slug: '', phone_number: '', pin_code: '1234' })
     } else { alert('Error: ' + error.message) }
+  }
+
+  async function handleDeleteMerchant(id) {
+    if (window.confirm('Are you sure you want to completely delete this store? This cannot be undone.')) {
+      await supabase.from('merchants').delete().eq('id', id)
+      fetchMerchants()
+    }
   }
 
   async function handleUpdateBrand(e) {
@@ -84,13 +98,11 @@ export default function Admin() {
       if (uploadedUrl) logo_url = uploadedUrl
     }
     const { error } = await supabase.from('merchants').update({ 
-      theme_color: selectedMerchant.theme_color,
-      logo_url: logo_url,
-      pin_code: selectedMerchant.pin_code
+      theme_color: selectedMerchant.theme_color, logo_url: logo_url, pin_code: selectedMerchant.pin_code
     }).eq('id', selectedMerchant.id)
     
     if (!error) {
-      alert('Brand settings & PIN updated!')
+      alert('Brand settings updated!')
       setSelectedMerchant({...selectedMerchant, logo_url})
       setLogoFile(null)
       fetchMerchants()
@@ -106,6 +118,7 @@ export default function Admin() {
     const { error } = await supabase.from('products').insert([{ ...newProduct, merchant_id: selectedMerchant.id, image_url: image_url }])
     if (!error) {
       fetchProducts(selectedMerchant.id)
+      fetchPlatformStats()
       setNewProduct({ name: '', description: '', price: '', category: '' })
       setProductImageFile(null)
       document.getElementById('product-image').value = '';
@@ -116,6 +129,7 @@ export default function Admin() {
   async function handleDeleteProduct(id) {
     await supabase.from('products').delete().eq('id', id)
     fetchProducts(selectedMerchant.id)
+    fetchPlatformStats()
   }
 
   if (authLoading) return <div className="min-h-screen flex items-center justify-center bg-gray-50 text-xl font-bold">Checking access...</div>
@@ -135,110 +149,152 @@ export default function Admin() {
   }
 
   return (
-    <div className="p-8 bg-gray-100 min-h-screen font-sans pb-20">
-      <div className="max-w-6xl mx-auto">
+    <div className="p-4 sm:p-8 bg-gray-100 min-h-screen font-sans pb-20">
+      <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800">Crudhub Super Admin</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Crudhub Super Admin</h1>
           <div className="flex gap-4">
-            {activeView !== 'list' && <button onClick={() => setActiveView('list')} className="bg-gray-300 px-4 py-2 rounded font-bold hover:bg-gray-400 text-sm">&larr; Back</button>}
-            <button onClick={handleLogout} className="bg-red-100 text-red-600 px-4 py-2 rounded font-bold hover:bg-red-200 text-sm border border-red-200">Logout</button>
+            {activeView !== 'list' && <button onClick={() => setActiveView('list')} className="bg-white border border-gray-300 px-4 py-2 rounded-lg font-bold hover:bg-gray-50 text-sm shadow-sm">&larr; Back to Dashboard</button>}
+            <button onClick={handleLogout} className="bg-red-50 text-red-600 px-4 py-2 rounded-lg font-bold hover:bg-red-100 text-sm border border-red-200 shadow-sm">Logout</button>
           </div>
         </div>
 
         {activeView === 'list' && (
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-gray-800">Your Active Clients</h2>
-              <button onClick={() => setActiveView('add')} className="bg-black text-white px-4 py-2 rounded-lg font-medium">+ Create New Client Space</button>
+          <div className="space-y-6">
+            
+            {/* TOP METRICS ROW */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex items-center justify-between">
+                <div><p className="text-sm text-gray-500 font-bold uppercase tracking-wider mb-1">Total Stores</p><h3 className="text-4xl font-black text-gray-900">{merchants.length}</h3></div>
+                <div className="text-5xl opacity-80">🏪</div>
+              </div>
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex items-center justify-between">
+                <div><p className="text-sm text-gray-500 font-bold uppercase tracking-wider mb-1">Platform Products</p><h3 className="text-4xl font-black text-gray-900">{allProductsCount}</h3></div>
+                <div className="text-5xl opacity-80">📦</div>
+              </div>
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex items-center justify-center">
+                 <button onClick={() => setActiveView('add')} className="bg-black text-white px-6 py-4 rounded-xl font-bold w-full hover:bg-gray-800 transition-transform active:scale-95 shadow-md flex items-center justify-center gap-2 text-lg">
+                    <span>+ Create New Store</span>
+                 </button>
+              </div>
             </div>
-            <div className="grid gap-4">
-              {merchants.map(m => (
-                <div key={m.id} className="border border-gray-100 p-5 rounded-lg flex justify-between items-center bg-gray-50">
-                  <div className="flex items-center gap-4">
-                    {m.logo_url && <img src={m.logo_url} alt="Logo" className="h-10 w-10 rounded-full object-cover border shadow-sm" />}
-                    <div>
-                      <h3 className="font-bold text-lg text-gray-900">{m.business_name}</h3>
-                      <p className="text-sm text-gray-500 font-medium">crudhub.app/{m.slug}</p>
-                    </div>
-                  </div>
-                  <button onClick={() => { setSelectedMerchant(m); fetchProducts(m.id); setActiveView('manage'); }} className="bg-blue-600 text-white px-5 py-2 rounded-lg font-medium shadow-sm hover:bg-blue-700">Manage Menu & Style</button>
-                </div>
-              ))}
+
+            {/* BIRD'S EYE DIRECTORY TABLE */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+                <h2 className="text-xl font-bold text-gray-800">Merchant Directory</h2>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-100">
+                      <th className="p-4 font-bold">Business</th>
+                      <th className="p-4 font-bold">Store Link</th>
+                      <th className="p-4 font-bold">WhatsApp</th>
+                      <th className="p-4 font-bold">PIN</th>
+                      <th className="p-4 font-bold text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {merchants.map(m => (
+                      <tr key={m.id} className="hover:bg-gray-50 transition-colors group">
+                        <td className="p-4 flex items-center gap-3">
+                          {m.logo_url ? <img src={m.logo_url} className="w-10 h-10 rounded-full object-cover border bg-white" /> : <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center font-bold text-gray-500 border border-gray-300">{m.business_name?.charAt(0)}</div>}
+                          <span className="font-bold text-gray-900">{m.business_name}</span>
+                        </td>
+                        <td className="p-4">
+                          <a href={`/${m.slug}`} target="_blank" rel="noreferrer" className="text-blue-600 font-semibold hover:underline flex items-center gap-1 w-fit">
+                            /{m.slug} <span className="text-xs opacity-50">↗</span>
+                          </a>
+                        </td>
+                        <td className="p-4 text-gray-700 font-medium">{m.phone_number || <span className="text-red-400 italic text-sm">Missing</span>}</td>
+                        <td className="p-4"><span className="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-md font-mono text-sm border font-bold shadow-sm">{m.pin_code}</span></td>
+                        <td className="p-4 text-right">
+                          <div className="flex justify-end gap-2">
+                            <button onClick={() => { setSelectedMerchant(m); fetchProducts(m.id); setActiveView('manage'); }} className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-blue-100 border border-blue-200 transition-colors">Manage</button>
+                            <button onClick={() => handleDeleteMerchant(m.id)} className="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-red-100 border border-red-200 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100">Delete</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {merchants.length === 0 && <div className="p-12 text-center text-gray-400 font-medium text-lg">No merchants found. Create your first store above!</div>}
+              </div>
             </div>
           </div>
         )}
 
+        {/* The 'add' and 'manage' views remain exactly as you configured them earlier */}
         {activeView === 'add' && (
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 max-w-2xl">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Register a New Client</h2>
-            <form onSubmit={handleCreateMerchant} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><label className="block text-sm font-bold mb-1">Business Name</label><input required className="w-full border p-2 rounded" placeholder="e.g. Emily's Parfume" value={newMerchant.business_name} onChange={e => setNewMerchant({...newMerchant, business_name: e.target.value})} /></div>
-                <div><label className="block text-sm font-bold mb-1">URL Slug</label><input required className="w-full border p-2 rounded" placeholder="e.g. emilys-parfume" value={newMerchant.slug} onChange={e => setNewMerchant({...newMerchant, slug: e.target.value.toLowerCase()})} /></div>
-                
-                {/* NEW WHATSAPP FIELD IS RIGHT HERE */}
-                <div><label className="block text-sm font-bold mb-1">WhatsApp Number</label><input required type="tel" className="w-full border p-2 rounded" placeholder="2348012345678" value={newMerchant.phone_number} onChange={e => setNewMerchant({...newMerchant, phone_number: e.target.value})} /></div>
-                
-                <div><label className="block text-sm font-bold mb-1">Manager PIN</label><input required maxLength="4" className="w-full border p-2 rounded" placeholder="1234" value={newMerchant.pin_code} onChange={e => setNewMerchant({...newMerchant, pin_code: e.target.value})} /></div>
+          <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8 border border-gray-200 max-w-2xl mx-auto">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6">Register a New Client</h2>
+            <form onSubmit={handleCreateMerchant} className="space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Business Name</label><input required className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-black outline-none bg-gray-50 focus:bg-white" placeholder="e.g. Emily's Parfume" value={newMerchant.business_name} onChange={e => setNewMerchant({...newMerchant, business_name: e.target.value})} /></div>
+                <div><label className="block text-sm font-bold mb-1.5 text-gray-700">URL Slug</label><input required className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-black outline-none bg-gray-50 focus:bg-white" placeholder="e.g. emilys-parfume" value={newMerchant.slug} onChange={e => setNewMerchant({...newMerchant, slug: e.target.value.toLowerCase()})} /></div>
+                <div><label className="block text-sm font-bold mb-1.5 text-gray-700">WhatsApp Number</label><input required type="tel" className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-black outline-none bg-gray-50 focus:bg-white" placeholder="2348012345678" value={newMerchant.phone_number} onChange={e => setNewMerchant({...newMerchant, phone_number: e.target.value})} /></div>
+                <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Manager PIN</label><input required maxLength="4" className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-black outline-none bg-gray-50 focus:bg-white" placeholder="1234" value={newMerchant.pin_code} onChange={e => setNewMerchant({...newMerchant, pin_code: e.target.value})} /></div>
               </div>
-              <button type="submit" className="bg-green-600 text-white px-4 py-3 mt-2 rounded font-bold w-full">Create Space</button>
+              <button type="submit" className="bg-green-600 text-white px-4 py-3.5 mt-4 rounded-xl font-bold w-full text-lg shadow-sm hover:bg-green-700 transition-colors">Launch Client Space</button>
             </form>
           </div>
         )}
 
         {activeView === 'manage' && selectedMerchant && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 h-fit">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200 h-fit">
               <h2 className="text-xl font-bold text-gray-800 mb-4">Brand Settings</h2>
-              <form onSubmit={handleUpdateBrand} className="space-y-4">
+              <form onSubmit={handleUpdateBrand} className="space-y-5">
                 <div>
-                  <label className="block text-sm font-bold mb-2">Theme Color</label>
-                  <input type="color" value={selectedMerchant.theme_color || '#000000'} onChange={e => setSelectedMerchant({...selectedMerchant, theme_color: e.target.value})} className="w-full h-12 rounded cursor-pointer" />
+                  <label className="block text-sm font-bold mb-1.5 text-gray-700">Theme Color</label>
+                  <input type="color" value={selectedMerchant.theme_color || '#000000'} onChange={e => setSelectedMerchant({...selectedMerchant, theme_color: e.target.value})} className="w-full h-12 rounded cursor-pointer border p-1" />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold mb-2">Manager PIN</label>
-                  <input required maxLength="4" className="w-full border p-2 rounded bg-gray-50" value={selectedMerchant.pin_code || ''} onChange={e => setSelectedMerchant({...selectedMerchant, pin_code: e.target.value})} />
+                  <label className="block text-sm font-bold mb-1.5 text-gray-700">Manager PIN</label>
+                  <input required maxLength="4" className="w-full border p-2.5 rounded-lg bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-black" value={selectedMerchant.pin_code || ''} onChange={e => setSelectedMerchant({...selectedMerchant, pin_code: e.target.value})} />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold mb-2">Business Logo</label>
-                  {selectedMerchant.logo_url && <img src={selectedMerchant.logo_url} alt="Logo" className="h-16 mb-2 rounded border object-contain" />}
-                  <input type="file" accept="image/*" onChange={e => setLogoFile(e.target.files[0])} className="w-full border p-2 rounded text-sm bg-gray-50" />
+                  <label className="block text-sm font-bold mb-1.5 text-gray-700">Business Logo</label>
+                  {selectedMerchant.logo_url && <img src={selectedMerchant.logo_url} alt="Logo" className="h-20 mb-3 rounded-lg border object-contain bg-gray-50 p-1" />}
+                  <input type="file" accept="image/*" onChange={e => setLogoFile(e.target.files[0])} className="w-full border p-2 rounded-lg text-sm bg-gray-50" />
                 </div>
-                <button type="submit" disabled={isUploading} className="bg-black text-white px-4 py-2 rounded font-bold w-full disabled:bg-gray-400">
+                <button type="submit" disabled={isUploading} className="bg-black text-white px-4 py-3 rounded-xl font-bold w-full disabled:bg-gray-400 hover:bg-gray-800 transition-colors">
                   {isUploading ? 'Saving...' : 'Save Settings'}
                 </button>
               </form>
             </div>
 
-            <div className="md:col-span-2 bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+            <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
               <h2 className="text-xl font-bold text-gray-800 mb-4">Manage Catalog</h2>
-              <form onSubmit={handleAddProduct} className="flex flex-col gap-3 mb-6 bg-gray-50 p-4 rounded border">
-                <div className="flex gap-2">
-                  <input required placeholder="Item Name" className="border p-2 rounded flex-1" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
-                  <input required type="number" placeholder="Price (₦)" className="border p-2 rounded w-24" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} />
-                  <input required placeholder="Category" className="border p-2 rounded w-1/4" value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} />
+              <form onSubmit={handleAddProduct} className="flex flex-col gap-3 mb-6 bg-gray-50 p-5 rounded-xl border border-gray-100">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <input required placeholder="Item Name" className="border p-2.5 rounded-lg flex-1 outline-none focus:ring-2 focus:ring-black" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
+                  <input required type="number" placeholder="Price (₦)" className="border p-2.5 rounded-lg sm:w-32 outline-none focus:ring-2 focus:ring-black" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} />
+                  <input required placeholder="Category" className="border p-2.5 rounded-lg sm:w-1/4 outline-none focus:ring-2 focus:ring-black" value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} />
                 </div>
-                <div className="flex gap-2 items-center">
-                  <input id="product-image" type="file" accept="image/*" onChange={e => setProductImageFile(e.target.files[0])} className="border p-1.5 rounded flex-1 text-sm bg-white" />
-                  <button type="submit" disabled={isUploading} className="bg-green-600 text-white px-6 py-2 rounded font-bold disabled:bg-gray-400">
+                <div className="flex flex-col sm:flex-row gap-3 items-center">
+                  <input id="product-image" type="file" accept="image/*" onChange={e => setProductImageFile(e.target.files[0])} className="border p-2 rounded-lg flex-1 text-sm bg-white w-full" />
+                  <button type="submit" disabled={isUploading} className="bg-green-600 text-white px-6 py-2.5 rounded-lg font-bold disabled:bg-gray-400 hover:bg-green-700 transition-colors w-full sm:w-auto whitespace-nowrap">
                     {isUploading ? 'Adding...' : '+ Add Item'}
                   </button>
                 </div>
               </form>
 
-              <div className="space-y-3">
+              <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
                 {products.map(p => (
-                  <div key={p.id} className="flex justify-between items-center p-3 border rounded bg-gray-50">
+                  <div key={p.id} className="flex justify-between items-center p-4 border border-gray-100 rounded-xl bg-gray-50 hover:bg-white transition-colors">
                     <div className="flex items-center gap-4">
-                      {p.image_url ? <img src={p.image_url} alt={p.name} className="w-12 h-12 object-cover rounded border shadow-sm" /> : <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center text-xs text-gray-500 font-bold border">No Img</div>}
+                      {p.image_url ? <img src={p.image_url} alt={p.name} className="w-14 h-14 object-cover rounded-lg border shadow-sm bg-white" /> : <div className="w-14 h-14 bg-gray-200 rounded-lg flex items-center justify-center text-xs text-gray-500 font-bold border">No Img</div>}
                       <div>
-                        <h4 className="font-bold">{p.name}</h4>
-                        <p className="text-sm text-green-700 font-bold">₦{p.price}</p>
+                        <h4 className="font-bold text-gray-900">{p.name}</h4>
+                        <p className="text-sm text-green-700 font-bold">₦{Number(p.price).toLocaleString()}</p>
                       </div>
                     </div>
-                    <button onClick={() => handleDeleteProduct(p.id)} className="text-red-500 font-bold hover:underline text-sm">Delete</button>
+                    <button onClick={() => handleDeleteProduct(p.id)} className="text-red-500 font-bold hover:bg-red-50 px-3 py-1.5 rounded-lg text-sm transition-colors border border-transparent hover:border-red-200">Delete</button>
                   </div>
                 ))}
+                {products.length === 0 && <p className="text-center text-gray-400 font-medium py-8">No products added yet.</p>}
               </div>
             </div>
           </div>
