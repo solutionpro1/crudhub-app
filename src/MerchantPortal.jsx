@@ -6,8 +6,9 @@ export default function MerchantPortal() {
   const { storeSlug } = useParams()
   const [merchant, setMerchant] = useState(null)
   const [products, setProducts] = useState([])
+  const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('menu') // 'menu' or 'profile'
+  const [activeTab, setActiveTab] = useState('orders') // Default to orders tab now!
   
   const [pinInput, setPinInput] = useState('')
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -32,11 +33,17 @@ export default function MerchantPortal() {
     setProducts(data || [])
   }
 
+  async function fetchOrders() {
+    const { data } = await supabase.from('orders').select('*').eq('merchant_id', merchant.id).order('created_at', { ascending: false })
+    setOrders(data || [])
+  }
+
   const handleLogin = (e) => {
     e.preventDefault()
     if (merchant && pinInput === merchant.pin_code) {
       setIsAuthenticated(true)
       fetchProducts()
+      fetchOrders()
     } else { setAuthError('Incorrect PIN code') }
   }
 
@@ -50,7 +57,6 @@ export default function MerchantPortal() {
     return data.publicUrl
   }
 
-  // Save Profile & Branding Settings
   async function handleSaveProfile(e) {
     e.preventDefault()
     setIsUploading(true)
@@ -79,9 +85,7 @@ export default function MerchantPortal() {
     if (!error) {
       alert('Store profile updated successfully!')
       setLogoFile(null)
-    } else {
-      alert('Error updating profile: ' + error.message)
-    }
+    } else { alert('Error updating profile: ' + error.message) }
     setIsUploading(false)
   }
 
@@ -112,6 +116,12 @@ export default function MerchantPortal() {
     fetchProducts()
   }
 
+  async function handleUpdateOrderStatus(orderId, newStatus) {
+    const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId)
+    if (!error) fetchOrders()
+    else alert('Error updating order: ' + error.message)
+  }
+
   if (loading) return <div className="min-h-screen flex items-center justify-center font-bold">Loading portal...</div>
   if (!merchant) return <div className="min-h-screen flex items-center justify-center text-red-500 font-bold">Store not found!</div>
 
@@ -132,6 +142,8 @@ export default function MerchantPortal() {
     )
   }
 
+  const pendingOrdersCount = orders.filter(o => o.status === 'Pending').length
+
   return (
     <div className="min-h-screen bg-gray-50 font-sans pb-20">
       <header className="text-white p-6 shadow-md" style={{ backgroundColor: merchant.theme_color || '#000000' }}>
@@ -145,8 +157,12 @@ export default function MerchantPortal() {
       </header>
 
       {/* Navigation Tabs */}
-      <div className="max-w-4xl mx-auto px-6 mt-6">
-        <div className="flex border-b border-gray-200 gap-6">
+      <div className="max-w-4xl mx-auto px-6 mt-6 overflow-x-auto">
+        <div className="flex border-b border-gray-200 gap-6 whitespace-nowrap min-w-max">
+          <button onClick={() => setActiveTab('orders')} className={`pb-3 font-bold border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'orders' ? 'border-black text-black' : 'border-transparent text-gray-400 hover:text-gray-600'}`}>
+            Incoming Orders
+            {pendingOrdersCount > 0 && <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{pendingOrdersCount}</span>}
+          </button>
           <button onClick={() => setActiveTab('menu')} className={`pb-3 font-bold border-b-2 transition-colors ${activeTab === 'menu' ? 'border-black text-black' : 'border-transparent text-gray-400 hover:text-gray-600'}`}>
             Manage Menu / Products
           </button>
@@ -157,7 +173,75 @@ export default function MerchantPortal() {
       </div>
 
       <main className="max-w-4xl mx-auto p-6">
-        {activeTab === 'menu' ? (
+        
+        {/* ORDERS TAB */}
+        {activeTab === 'orders' && (
+          <div className="space-y-6">
+            <h2 className="text-xl font-bold text-gray-800">Order Management</h2>
+            {orders.length === 0 ? (
+              <div className="bg-white rounded-xl p-8 text-center border text-gray-500 shadow-sm">No orders have been placed yet.</div>
+            ) : (
+              <div className="space-y-4">
+                {orders.map(order => (
+                  <div key={order.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="p-4 border-b bg-gray-50 flex flex-wrap justify-between items-center gap-4">
+                      <div>
+                        <h3 className="font-bold text-lg text-gray-900">{order.customer_name}</h3>
+                        <p className="text-sm text-gray-500">{new Date(order.created_at).toLocaleString()}</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className={`px-3 py-1 text-sm font-bold rounded-full ${
+                          order.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
+                          order.status === 'Processing' ? 'bg-blue-100 text-blue-800' :
+                          order.status === 'Completed' ? 'bg-green-100 text-green-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {order.status}
+                        </span>
+                        <select 
+                          value={order.status} 
+                          onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value)}
+                          className="border border-gray-300 rounded text-sm p-1.5 font-semibold text-gray-700 bg-white"
+                        >
+                          <option value="Pending">Pending</option>
+                          <option value="Processing">Processing</option>
+                          <option value="Completed">Completed</option>
+                          <option value="Cancelled">Cancelled</option>
+                        </select>
+                      </div>
+                    </div>
+                    
+                    <div className="p-4 flex flex-col md:flex-row gap-6">
+                      <div className="flex-1 space-y-2">
+                        <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Delivery Details</h4>
+                        <p className="text-gray-800 text-sm whitespace-pre-wrap"><span className="font-semibold">Address:</span> {order.customer_address}</p>
+                        {order.customer_notes && <p className="text-gray-800 text-sm"><span className="font-semibold">Notes:</span> {order.customer_notes}</p>}
+                      </div>
+                      <div className="flex-1 space-y-2">
+                         <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Order Items</h4>
+                         <ul className="text-sm space-y-1">
+                           {order.items.map((item, i) => (
+                             <li key={i} className="flex justify-between border-b border-dashed border-gray-200 pb-1">
+                               <span>{item.name}</span>
+                               <span className="font-medium text-gray-600">₦{Number(item.price).toLocaleString()}</span>
+                             </li>
+                           ))}
+                         </ul>
+                         <div className="flex justify-between pt-2 font-bold text-gray-900">
+                           <span>Total:</span>
+                           <span className="text-green-700">₦{Number(order.total_amount).toLocaleString()}</span>
+                         </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* MENU TAB */}
+        {activeTab === 'menu' && (
           <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
             <h2 className="text-xl font-bold text-gray-800 mb-4">Add New Item</h2>
             <form onSubmit={handleAddProduct} className="flex flex-col gap-4 mb-8 bg-gray-50 p-4 rounded border">
@@ -197,7 +281,10 @@ export default function MerchantPortal() {
               ))}
             </div>
           </div>
-        ) : (
+        )}
+
+        {/* PROFILE TAB */}
+        {activeTab === 'profile' && (
           <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
             <h2 className="text-xl font-bold text-gray-800 mb-4">Store Branding & Profile</h2>
             <form onSubmit={handleSaveProfile} className="space-y-5">
@@ -246,30 +333,12 @@ export default function MerchantPortal() {
               <p className="text-xs text-gray-500 mb-4">Leave empty any social network you don't use. It will automatically hide on your store.</p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Facebook URL</label>
-                  <input className="w-full border p-2 rounded text-sm" placeholder="https://facebook.com/yourbusiness" value={merchant.facebook_url || ''} onChange={e => setMerchant({...merchant, facebook_url: e.target.value})} />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Instagram URL</label>
-                  <input className="w-full border p-2 rounded text-sm" placeholder="https://instagram.com/yourbusiness" value={merchant.instagram_url || ''} onChange={e => setMerchant({...merchant, instagram_url: e.target.value})} />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">TikTok URL</label>
-                  <input className="w-full border p-2 rounded text-sm" placeholder="https://tiktok.com/@yourbusiness" value={merchant.tiktok_url || ''} onChange={e => setMerchant({...merchant, tiktok_url: e.target.value})} />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">YouTube URL</label>
-                  <input className="w-full border p-2 rounded text-sm" placeholder="https://youtube.com/@yourbusiness" value={merchant.youtube_url || ''} onChange={e => setMerchant({...merchant, youtube_url: e.target.value})} />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">X (Twitter) URL</label>
-                  <input className="w-full border p-2 rounded text-sm" placeholder="https://x.com/yourbusiness" value={merchant.x_url || ''} onChange={e => setMerchant({...merchant, x_url: e.target.value})} />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">LinkedIn URL</label>
-                  <input className="w-full border p-2 rounded text-sm" placeholder="https://linkedin.com/company/yourbusiness" value={merchant.linkedin_url || ''} onChange={e => setMerchant({...merchant, linkedin_url: e.target.value})} />
-                </div>
+                <div><label className="block text-sm font-bold text-gray-700 mb-1">Facebook URL</label><input className="w-full border p-2 rounded text-sm" placeholder="https://facebook.com/..." value={merchant.facebook_url || ''} onChange={e => setMerchant({...merchant, facebook_url: e.target.value})} /></div>
+                <div><label className="block text-sm font-bold text-gray-700 mb-1">Instagram URL</label><input className="w-full border p-2 rounded text-sm" placeholder="https://instagram.com/..." value={merchant.instagram_url || ''} onChange={e => setMerchant({...merchant, instagram_url: e.target.value})} /></div>
+                <div><label className="block text-sm font-bold text-gray-700 mb-1">TikTok URL</label><input className="w-full border p-2 rounded text-sm" placeholder="https://tiktok.com/..." value={merchant.tiktok_url || ''} onChange={e => setMerchant({...merchant, tiktok_url: e.target.value})} /></div>
+                <div><label className="block text-sm font-bold text-gray-700 mb-1">YouTube URL</label><input className="w-full border p-2 rounded text-sm" placeholder="https://youtube.com/..." value={merchant.youtube_url || ''} onChange={e => setMerchant({...merchant, youtube_url: e.target.value})} /></div>
+                <div><label className="block text-sm font-bold text-gray-700 mb-1">X (Twitter) URL</label><input className="w-full border p-2 rounded text-sm" placeholder="https://x.com/..." value={merchant.x_url || ''} onChange={e => setMerchant({...merchant, x_url: e.target.value})} /></div>
+                <div><label className="block text-sm font-bold text-gray-700 mb-1">LinkedIn URL</label><input className="w-full border p-2 rounded text-sm" placeholder="https://linkedin.com/..." value={merchant.linkedin_url || ''} onChange={e => setMerchant({...merchant, linkedin_url: e.target.value})} /></div>
               </div>
 
               <button type="submit" disabled={isUploading} className="w-full bg-black text-white py-3 rounded-lg font-bold mt-6 hover:bg-gray-800 transition-colors disabled:bg-gray-400">
@@ -278,6 +347,7 @@ export default function MerchantPortal() {
             </form>
           </div>
         )}
+
       </main>
     </div>
   )
