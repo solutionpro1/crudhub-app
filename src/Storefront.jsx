@@ -8,6 +8,10 @@ export default function Storefront() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
 
+  // Filtering State
+  const [selectedCategory, setSelectedCategory] = useState('All')
+  const [searchQuery, setSearchQuery] = useState('')
+
   // Cart & Checkout State
   const [cart, setCart] = useState([])
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
@@ -31,8 +35,8 @@ export default function Storefront() {
       .single()
 
     if (merchantError || !merchantData) {
-      setLoading(false)
-      return
+        setLoading(false)
+        return
     }
     setMerchant(merchantData)
 
@@ -116,6 +120,15 @@ export default function Storefront() {
   const themeColor = merchant.theme_color || '#000000'
   const hasSocials = merchant.instagram_url || merchant.tiktok_url || merchant.facebook_url || merchant.x_url
 
+  // --- DYNAMIC CATEGORY & SEARCH LOGIC ---
+  const categories = ['All', ...new Set(products.map(p => p.category).filter(Boolean))]
+  
+  const displayedProducts = products.filter(p => {
+    const matchesCategory = selectedCategory === 'All' || p.category === selectedCategory
+    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase())
+    return matchesCategory && matchesSearch
+  })
+
   return (
     <div className="min-h-screen bg-gray-50 pb-24 font-sans flex flex-col">
       
@@ -136,10 +149,43 @@ export default function Storefront() {
         </div>
       </header>
 
-      {/* PRODUCT GRID */}
+      {/* MAIN CONTENT AREA */}
       <main className="max-w-4xl mx-auto px-4 py-8 flex-1 w-full">
+        
+        {/* SEARCH BAR */}
+        <div className="mb-6 relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <span className="text-gray-400 text-lg">🔍</span>
+          </div>
+          <input
+            type="text"
+            placeholder="Search the menu..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-white border border-gray-200 rounded-xl py-3.5 pl-10 pr-4 outline-none focus:ring-2 transition-shadow shadow-sm font-medium"
+            style={{ '--tw-ring-color': themeColor }}
+          />
+        </div>
+
+        {/* SMART CATEGORY FILTER */}
+        {categories.length > 2 && (
+          <div className="flex overflow-x-auto gap-3 pb-6 mb-2 hide-scrollbar">
+            {categories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-5 py-2.5 rounded-full font-bold text-sm whitespace-nowrap transition-all shadow-sm ${selectedCategory === cat ? 'text-white' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}`}
+                style={selectedCategory === cat ? { backgroundColor: themeColor } : {}}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* PRODUCT GRID */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-          {products.map(product => (
+          {displayedProducts.map(product => (
             <div key={product.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow flex flex-col">
               {product.image_url ? (
                 <img src={product.image_url} alt={product.name} className="w-full h-48 object-cover" />
@@ -160,7 +206,11 @@ export default function Storefront() {
               </div>
             </div>
           ))}
-          {products.length === 0 && <div className="col-span-full text-center py-12 text-gray-500 font-medium">This store hasn't added any products yet.</div>}
+          {displayedProducts.length === 0 && (
+            <div className="col-span-full text-center py-12 text-gray-500 font-medium">
+              {searchQuery ? `No items found matching "${searchQuery}".` : "No products available."}
+            </div>
+          )}
         </div>
       </main>
 
@@ -170,26 +220,10 @@ export default function Storefront() {
           <div className="max-w-4xl mx-auto px-4 text-center">
             <h3 className="text-gray-900 font-bold mb-6 text-lg">Connect with {merchant.business_name}</h3>
             <div className="flex flex-wrap justify-center gap-4">
-              {merchant.instagram_url && (
-                <a href={merchant.instagram_url} target="_blank" rel="noreferrer" className="bg-gray-50 text-gray-700 hover:text-black border border-gray-200 hover:border-black px-6 py-3 rounded-full font-bold transition-colors text-sm shadow-sm">
-                  Instagram
-                </a>
-              )}
-              {merchant.tiktok_url && (
-                <a href={merchant.tiktok_url} target="_blank" rel="noreferrer" className="bg-gray-50 text-gray-700 hover:text-black border border-gray-200 hover:border-black px-6 py-3 rounded-full font-bold transition-colors text-sm shadow-sm">
-                  TikTok
-                </a>
-              )}
-              {merchant.facebook_url && (
-                <a href={merchant.facebook_url} target="_blank" rel="noreferrer" className="bg-gray-50 text-gray-700 hover:text-blue-600 border border-gray-200 hover:border-blue-600 px-6 py-3 rounded-full font-bold transition-colors text-sm shadow-sm">
-                  Facebook
-                </a>
-              )}
-              {merchant.x_url && (
-                <a href={merchant.x_url} target="_blank" rel="noreferrer" className="bg-gray-50 text-gray-700 hover:text-black border border-gray-200 hover:border-black px-6 py-3 rounded-full font-bold transition-colors text-sm shadow-sm">
-                  X (Twitter)
-                </a>
-              )}
+              {merchant.instagram_url && <a href={merchant.instagram_url} target="_blank" rel="noreferrer" className="bg-gray-50 text-gray-700 hover:text-black border border-gray-200 hover:border-black px-6 py-3 rounded-full font-bold transition-colors text-sm shadow-sm">Instagram</a>}
+              {merchant.tiktok_url && <a href={merchant.tiktok_url} target="_blank" rel="noreferrer" className="bg-gray-50 text-gray-700 hover:text-black border border-gray-200 hover:border-black px-6 py-3 rounded-full font-bold transition-colors text-sm shadow-sm">TikTok</a>}
+              {merchant.facebook_url && <a href={merchant.facebook_url} target="_blank" rel="noreferrer" className="bg-gray-50 text-gray-700 hover:text-blue-600 border border-gray-200 hover:border-blue-600 px-6 py-3 rounded-full font-bold transition-colors text-sm shadow-sm">Facebook</a>}
+              {merchant.x_url && <a href={merchant.x_url} target="_blank" rel="noreferrer" className="bg-gray-50 text-gray-700 hover:text-black border border-gray-200 hover:border-black px-6 py-3 rounded-full font-bold transition-colors text-sm shadow-sm">X (Twitter)</a>}
             </div>
           </div>
         </footer>
@@ -277,6 +311,8 @@ export default function Storefront() {
           to { transform: translateX(0); }
         }
         .animate-slide-in { animation: slide-in 0.3s ease-out forwards; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}} />
     </div>
   )
