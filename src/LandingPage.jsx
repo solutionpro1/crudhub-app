@@ -5,6 +5,11 @@ import { supabase } from './supabaseClient'
 export default function LandingPage() {
   const [isLoginOpen, setIsLoginOpen] = useState(false)
   const [isSignupOpen, setIsSignupOpen] = useState(false)
+  
+  // NEW LEGAL MODALS STATE
+  const [isTermsOpen, setIsTermsOpen] = useState(false)
+  const [isPrivacyOpen, setIsPrivacyOpen] = useState(false)
+
   const [storeSlug, setStoreSlug] = useState('')
   const navigate = useNavigate()
 
@@ -145,9 +150,9 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="mt-8 flex justify-center gap-4 text-gray-500 text-sm font-medium">
-             <a href="/terms" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">Terms & Conditions</a>
+             <button onClick={() => setIsTermsOpen(true)} className="hover:text-white transition-colors">Terms & Conditions</button>
              <span>|</span>
-             <a href="/privacy" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">Privacy Policy</a>
+             <button onClick={() => setIsPrivacyOpen(true)} className="hover:text-white transition-colors">Privacy Policy</button>
           </div>
           <p className="text-gray-600 text-xs font-medium mt-4">© {new Date().getFullYear()} Crudhub. Powered by SolutionPRO Technologies. All rights reserved.</p>
         </div>
@@ -156,8 +161,8 @@ export default function LandingPage() {
       {isLoginOpen && (
         <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm relative animate-slide-in">
-            <button onClick={() => setIsLoginOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <button onClick={() => setIsLoginOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2 bg-gray-50 rounded-full w-8 h-8 flex items-center justify-center font-bold">
+              ✕
             </button>
             <h2 className="text-2xl font-bold mb-2">Merchant Login</h2>
             <p className="text-gray-500 text-sm font-medium mb-6">Enter your store's URL name to access your dashboard.</p>
@@ -177,15 +182,15 @@ export default function LandingPage() {
       {isSignupOpen && (
         <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md relative animate-slide-in">
-            <button onClick={() => setIsSignupOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <button onClick={() => setIsSignupOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2 bg-gray-50 rounded-full w-8 h-8 flex items-center justify-center font-bold">
+              ✕
             </button>
             <h2 className="text-2xl font-bold mb-2">Create Your Store</h2>
             <p className="text-gray-500 text-sm font-medium mb-6">Start your 14-day free trial immediately. No credit card required.</p>
             <form onSubmit={handleSignup} className="space-y-4">
               <div>
                 <label className="block text-sm font-bold mb-1.5 text-gray-700">Business Name</label>
-                <input required className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-black outline-none bg-gray-50 focus:bg-white" value={newStore.business_name} onChange={handleBusinessNameChange} placeholder="e.g., SolutionPRO Gadgets" />
+                <input required className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-black outline-none bg-gray-50 focus:bg-white" value={newStore.business_name} onChange={handleBusinessNameChange} placeholder="e.g., Olamide's Boutique" />
               </div>
               <div>
                 <label className="block text-sm font-bold mb-1.5 text-gray-700">Store Link</label>
@@ -213,7 +218,7 @@ export default function LandingPage() {
                   className="mt-1 w-4 h-4 text-black focus:ring-black rounded border-gray-300"
                 />
                 <label htmlFor="terms" className="text-sm text-gray-600 font-medium leading-tight">
-                  I agree to the <a href="/terms" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Terms & Conditions</a> and confirm my business operates legally within my jurisdiction.
+                  I agree to the <button type="button" onClick={() => setIsTermsOpen(true)} className="text-blue-600 hover:underline">Terms & Conditions</button> and confirm my business operates legally within my jurisdiction.
                 </label>
               </div>
 
@@ -222,6 +227,46 @@ export default function LandingPage() {
                 {isSubmitting ? 'Creating Store...' : 'Launch Store Now'}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* TERMS MODAL */}
+      {isTermsOpen && (
+        <div className="fixed inset-0 bg-black/60 z-[110] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-2xl max-h-[85vh] overflow-y-auto relative animate-slide-in">
+            <button onClick={() => setIsTermsOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2 bg-gray-50 rounded-full w-8 h-8 flex items-center justify-center font-bold">
+              ✕
+            </button>
+            <h2 className="text-2xl font-black mb-4">Terms and Conditions</h2>
+            <div className="space-y-4 text-sm text-gray-600">
+              <p><strong>1. Introduction:</strong> Welcome to Crudhub, powered by SolutionPRO Technologies. By using our platform, you agree to these Terms.</p>
+              <p><strong>2. Software Provider Status:</strong> We provide the digital infrastructure. We do not handle logistics, product fulfillment, or direct payment processing. Disputes must be resolved directly between the buyer and the merchant.</p>
+              <p><strong>3. Subscriptions and Billing:</strong> New merchants receive a 14-day free trial. Continued access requires a subscription (₦1,400 monthly / ₦13,440 yearly). Failure to renew suspends the storefront.</p>
+              <p><strong>4. Prohibited Usage:</strong> Selling illegal substances, counterfeit goods, or violating local laws is strictly prohibited and results in immediate termination.</p>
+              <p><strong>5. Contact:</strong> SolutionPRO Technologies. 33A Olorunsogo Street, Sote, Ibafo, Ogun State. Phone: +234 902 811 6376.</p>
+            </div>
+            <button onClick={() => setIsTermsOpen(false)} className="w-full mt-8 bg-black text-white font-bold py-3.5 rounded-xl hover:bg-gray-800 transition-colors">I Understand</button>
+          </div>
+        </div>
+      )}
+
+      {/* PRIVACY MODAL */}
+      {isPrivacyOpen && (
+        <div className="fixed inset-0 bg-black/60 z-[110] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-2xl max-h-[85vh] overflow-y-auto relative animate-slide-in">
+            <button onClick={() => setIsPrivacyOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2 bg-gray-50 rounded-full w-8 h-8 flex items-center justify-center font-bold">
+              ✕
+            </button>
+            <h2 className="text-2xl font-black mb-4">Privacy Policy</h2>
+            <div className="space-y-4 text-sm text-gray-600">
+              <p><strong>1. Information We Collect:</strong> We collect necessary business data including name, WhatsApp number, digital catalog, and a 4-digit PIN for access.</p>
+              <p><strong>2. How We Use Your Data:</strong> Your data operates your storefront, authenticates logins, and routes WhatsApp orders. Contact info is used for billing reminders.</p>
+              <p><strong>3. Data Security:</strong> We comply with NDPR and standard data protection laws, securing your data in cloud environments. We never sell your data.</p>
+              <p><strong>4. End-Consumer Data:</strong> Customer checkout details are routed directly to your WhatsApp. Crudhub temporarily processes this strictly to format messages.</p>
+              <p><strong>5. Your Rights:</strong> You may request complete data deletion at any time by contacting realsolutionpro@outlook.com.</p>
+            </div>
+            <button onClick={() => setIsPrivacyOpen(false)} className="w-full mt-8 bg-black text-white font-bold py-3.5 rounded-xl hover:bg-gray-800 transition-colors">I Understand</button>
           </div>
         </div>
       )}
