@@ -13,6 +13,13 @@ export default function LandingPage() {
     }
   }
 
+  // Pre-filled WhatsApp URLs
+  const launchMessage = "Hello SolutionPRO! I want to launch my business on Crudhub. Let's get started!"
+  const salesMessage = "Hello SolutionPRO! I would like to talk to sales about setting up my Crudhub store."
+  
+  const whatsappLaunchUrl = `https://wa.me/2349028116376?text=${encodeURIComponent(launchMessage)}`
+  const whatsappSalesUrl = `https://wa.me/2349028116376?text=${encodeURIComponent(salesMessage)}`
+
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
       <nav className="bg-white border-b border-gray-200 fixed w-full top-0 z-50">
@@ -29,7 +36,10 @@ export default function LandingPage() {
         <h1 className="text-5xl md:text-7xl font-black tracking-tight mb-6 leading-tight">Your Business.<br/><span className="text-green-600">On WhatsApp.</span></h1>
         <p className="text-xl text-gray-500 mb-10 max-w-2xl mx-auto font-medium">Take your boutique, pharmacy, restaurant, or retail shop online in minutes. Get a beautiful digital storefront, custom QR codes, and receive every order directly to your WhatsApp. Zero commissions.</p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <a href="mailto:realsolutionpro@outlook.com" className="bg-black text-white px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:bg-gray-800 transition-transform active:scale-95">Launch Your Store</a>
+          <a href={whatsappLaunchUrl} target="_blank" rel="noreferrer" className="bg-black text-white px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:bg-gray-800 transition-transform active:scale-95 flex items-center justify-center gap-2">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+            Launch Your Store
+          </a>
           <a href="#features" className="bg-white text-gray-900 border-2 border-gray-200 px-8 py-4 rounded-xl font-bold text-lg hover:border-gray-300 transition-colors">See How it Works</a>
         </div>
       </section>
@@ -64,7 +74,10 @@ export default function LandingPage() {
       <footer className="bg-black text-white py-16 text-center">
         <div className="max-w-6xl mx-auto px-6">
           <h2 className="text-2xl font-bold mb-6">Ready to scale your business?</h2>
-          <a href="mailto:realsolutionpro@outlook.com" className="inline-block bg-white text-black px-8 py-3 rounded-xl font-bold hover:bg-gray-100 transition-colors mb-12">Contact Sales</a>
+          <a href={whatsappSalesUrl} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 bg-white text-black px-8 py-3 rounded-xl font-bold hover:bg-gray-100 transition-colors mb-12">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+            Contact Sales
+          </a>
           
           <div className="border-t border-gray-800 pt-8 mt-4 grid grid-cols-1 md:grid-cols-3 gap-6 text-gray-400 text-sm font-medium">
             <div className="flex flex-col items-center gap-2">
