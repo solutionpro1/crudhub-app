@@ -63,6 +63,21 @@ export default function Storefront() {
   if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-xl">Loading Store...</div>
   if (!merchant) return <div className="min-h-screen flex items-center justify-center font-bold text-xl text-red-600">Store Not Found</div>
 
+  // --- THE KILL SWITCH SCREEN ---
+  if (merchant.status === 'suspended') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 text-center font-sans">
+        <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200 max-w-md w-full">
+          <div className="text-gray-400 mb-6 flex justify-center">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-3">Store Temporarily Unavailable</h1>
+          <p className="text-gray-500 font-medium">This merchant is currently not accepting orders on the platform. Please check back later.</p>
+        </div>
+      </div>
+    )
+  }
+
   const themeColor = merchant.theme_color || '#000000'
   const hasSocials = merchant.instagram_url || merchant.tiktok_url || merchant.facebook_url || merchant.x_url
   const categories = ['All', ...new Set(products.map(p => p.category).filter(Boolean))]

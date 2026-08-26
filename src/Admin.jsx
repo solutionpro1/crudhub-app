@@ -73,7 +73,7 @@ export default function Admin() {
 
   async function handleCreateMerchant(e) {
     e.preventDefault()
-    const { error } = await supabase.from('merchants').insert([{ ...newMerchant, theme_color: '#000000' }])
+    const { error } = await supabase.from('merchants').insert([{ ...newMerchant, theme_color: '#000000', status: 'active' }])
     if (!error) {
       alert('Client created successfully!')
       fetchMerchants()
@@ -86,6 +86,26 @@ export default function Admin() {
     if (window.confirm('Are you sure you want to completely delete this store? This cannot be undone.')) {
       await supabase.from('merchants').delete().eq('id', id)
       fetchMerchants()
+    }
+  }
+
+  // --- NEW: TOGGLE SUBSCRIPTION STATUS ---
+  async function handleToggleStatus(merchant) {
+    const newStatus = merchant.status === 'suspended' ? 'active' : 'suspended'
+    const confirmMessage = newStatus === 'suspended' 
+      ? `Suspend ${merchant.business_name}? Their storefront will instantly go offline.`
+      : `Reactivate ${merchant.business_name}? Their storefront will go back online.`
+      
+    if (window.confirm(confirmMessage)) {
+      const { error } = await supabase.from('merchants').update({ status: newStatus }).eq('id', merchant.id)
+      if (error) {
+        alert('Error updating status: ' + error.message)
+      } else {
+        fetchMerchants()
+        if (selectedMerchant && selectedMerchant.id === merchant.id) {
+          setSelectedMerchant({...selectedMerchant, status: newStatus})
+        }
+      }
     }
   }
 
@@ -159,7 +179,7 @@ export default function Admin() {
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Crudhub Super Admin</h1>
           </div>
           <div className="flex gap-4">
-            {activeView !== 'list' && <button onClick={() => setActiveView('list')} className="bg-white border border-gray-300 px-4 py-2 rounded-lg font-bold hover:bg-gray-50 text-sm shadow-sm">&larr; Back to Dashboard</button>}
+            {activeView !== 'list' && <button onClick={() => setActiveView('list')} className="bg-white border border-gray-300 px-4 py-2 rounded-lg font-bold hover:bg-gray-50 text-sm shadow-sm">Back to Dashboard</button>}
             <button onClick={handleLogout} className="bg-red-50 text-red-600 px-4 py-2 rounded-lg font-bold hover:bg-red-100 text-sm border border-red-200 shadow-sm">Logout</button>
           </div>
         </div>
@@ -196,9 +216,8 @@ export default function Admin() {
                   <thead>
                     <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-100">
                       <th className="p-4 font-bold">Business</th>
+                      <th className="p-4 font-bold">Status</th>
                       <th className="p-4 font-bold">Store Link</th>
-                      <th className="p-4 font-bold">WhatsApp</th>
-                      <th className="p-4 font-bold">PIN</th>
                       <th className="p-4 font-bold text-right">Actions</th>
                     </tr>
                   </thead>
@@ -209,9 +228,12 @@ export default function Admin() {
                           {m.logo_url ? <img src={m.logo_url} className="w-10 h-10 rounded-full object-cover border bg-white" /> : <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center font-bold text-gray-500 border border-gray-300">{m.business_name?.charAt(0)}</div>}
                           <span className="font-bold text-gray-900">{m.business_name}</span>
                         </td>
-                        <td className="p-4"><a href={`/${m.slug}`} target="_blank" rel="noreferrer" className="text-blue-600 font-semibold hover:underline flex items-center gap-1 w-fit">/{m.slug} <span className="text-xs opacity-50">↗</span></a></td>
-                        <td className="p-4 text-gray-700 font-medium">{m.phone_number || <span className="text-red-400 italic text-sm">Missing</span>}</td>
-                        <td className="p-4"><span className="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-md font-mono text-sm border font-bold shadow-sm">{m.pin_code}</span></td>
+                        <td className="p-4">
+                          <span className={`px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider ${m.status === 'suspended' ? 'bg-red-100 text-red-700 border border-red-200' : 'bg-green-100 text-green-700 border border-green-200'}`}>
+                            {m.status === 'suspended' ? 'Suspended' : 'Active'}
+                          </span>
+                        </td>
+                        <td className="p-4"><a href={`/${m.slug}`} target="_blank" rel="noreferrer" className="text-blue-600 font-semibold hover:underline flex items-center gap-1 w-fit">/{m.slug} <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></a></td>
                         <td className="p-4 text-right">
                           <div className="flex justify-end gap-2">
                             <button onClick={() => { setSelectedMerchant(m); fetchProducts(m.id); setActiveView('manage'); }} className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-blue-100 border border-blue-200 transition-colors">Manage</button>
@@ -244,32 +266,43 @@ export default function Admin() {
 
         {activeView === 'manage' && selectedMerchant && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200 h-fit">
-              <h2 className="text-xl font-bold text-gray-800 mb-4">Brand & Socials</h2>
-              <form onSubmit={handleUpdateBrand} className="space-y-4">
-                <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Theme Color</label><input type="color" value={selectedMerchant.theme_color || '#000000'} onChange={e => setSelectedMerchant({...selectedMerchant, theme_color: e.target.value})} className="w-full h-12 rounded cursor-pointer border p-1" /></div>
-                <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Manager PIN</label><input required maxLength="4" className="w-full border p-2.5 rounded-lg bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-black" value={selectedMerchant.pin_code || ''} onChange={e => setSelectedMerchant({...selectedMerchant, pin_code: e.target.value})} /></div>
-                <div>
-                  <label className="block text-sm font-bold mb-1.5 text-gray-700">Business Logo</label>
-                  {selectedMerchant.logo_url && <img src={selectedMerchant.logo_url} alt="Logo" className="h-16 mb-2 rounded-lg border object-contain bg-gray-50 p-1" />}
-                  <input type="file" accept="image/*" onChange={e => setLogoFile(e.target.files[0])} className="w-full border p-2 rounded-lg text-sm bg-gray-50" />
+            <div className="space-y-6">
+              
+              {/* PLATFORM STATUS (KILL SWITCH) */}
+              <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
+                <h2 className="text-xl font-bold text-gray-800 mb-2">Platform Status</h2>
+                <p className="text-sm text-gray-500 mb-4">Toggle storefront access for this client.</p>
+                <div className={`p-4 rounded-xl border flex items-center justify-between ${selectedMerchant.status === 'suspended' ? 'bg-red-50 border-red-100' : 'bg-green-50 border-green-100'}`}>
+                  <span className={`font-bold ${selectedMerchant.status === 'suspended' ? 'text-red-800' : 'text-green-800'}`}>
+                    {selectedMerchant.status === 'suspended' ? 'Store is Offline' : 'Store is Active'}
+                  </span>
+                  <button 
+                    onClick={() => handleToggleStatus(selectedMerchant)}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold text-white shadow-sm transition-transform active:scale-95 ${selectedMerchant.status === 'suspended' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}
+                  >
+                    {selectedMerchant.status === 'suspended' ? 'Reactivate' : 'Suspend Store'}
+                  </button>
                 </div>
-                <div className="pt-4 border-t border-gray-100">
-                  <h3 className="font-bold text-gray-700 mb-3 text-sm">Social Links (Optional)</h3>
-                  <div className="space-y-3">
-                    <input placeholder="Instagram URL" className="w-full border p-2 rounded-lg text-sm bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-black" value={selectedMerchant.instagram_url || ''} onChange={e => setSelectedMerchant({...selectedMerchant, instagram_url: e.target.value})} />
-                    <input placeholder="TikTok URL" className="w-full border p-2 rounded-lg text-sm bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-black" value={selectedMerchant.tiktok_url || ''} onChange={e => setSelectedMerchant({...selectedMerchant, tiktok_url: e.target.value})} />
-                    <input placeholder="Facebook URL" className="w-full border p-2 rounded-lg text-sm bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-black" value={selectedMerchant.facebook_url || ''} onChange={e => setSelectedMerchant({...selectedMerchant, facebook_url: e.target.value})} />
-                    <input placeholder="X (Twitter) URL" className="w-full border p-2 rounded-lg text-sm bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-black" value={selectedMerchant.x_url || ''} onChange={e => setSelectedMerchant({...selectedMerchant, x_url: e.target.value})} />
+              </div>
+
+              <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
+                <h2 className="text-xl font-bold text-gray-800 mb-4">Brand & Settings</h2>
+                <form onSubmit={handleUpdateBrand} className="space-y-4">
+                  <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Theme Color</label><input type="color" value={selectedMerchant.theme_color || '#000000'} onChange={e => setSelectedMerchant({...selectedMerchant, theme_color: e.target.value})} className="w-full h-12 rounded cursor-pointer border p-1" /></div>
+                  <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Manager PIN</label><input required maxLength="4" className="w-full border p-2.5 rounded-lg bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-black" value={selectedMerchant.pin_code || ''} onChange={e => setSelectedMerchant({...selectedMerchant, pin_code: e.target.value})} /></div>
+                  <div>
+                    <label className="block text-sm font-bold mb-1.5 text-gray-700">Business Logo</label>
+                    {selectedMerchant.logo_url && <img src={selectedMerchant.logo_url} alt="Logo" className="h-16 mb-2 rounded-lg border object-contain bg-gray-50 p-1" />}
+                    <input type="file" accept="image/*" onChange={e => setLogoFile(e.target.files[0])} className="w-full border p-2 rounded-lg text-sm bg-gray-50" />
                   </div>
-                </div>
-                <button type="submit" disabled={isUploading} className="bg-black text-white px-4 py-3 mt-4 rounded-xl font-bold w-full disabled:bg-gray-400 hover:bg-gray-800 transition-colors">
-                  {isUploading ? 'Saving...' : 'Save Settings'}
-                </button>
-              </form>
+                  <button type="submit" disabled={isUploading} className="bg-black text-white px-4 py-3 mt-4 rounded-xl font-bold w-full disabled:bg-gray-400 hover:bg-gray-800 transition-colors">
+                    {isUploading ? 'Saving...' : 'Save Settings'}
+                  </button>
+                </form>
+              </div>
             </div>
 
-            <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
+            <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm p-6 border border-gray-200 h-fit">
               <h2 className="text-xl font-bold text-gray-800 mb-4">Manage Catalog</h2>
               <form onSubmit={handleAddProduct} className="flex flex-col gap-3 mb-6 bg-gray-50 p-5 rounded-xl border border-gray-100">
                 <div className="flex flex-col sm:flex-row gap-3">
