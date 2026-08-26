@@ -73,7 +73,17 @@ export default function Admin() {
 
   async function handleCreateMerchant(e) {
     e.preventDefault()
-    const { error } = await supabase.from('merchants').insert([{ ...newMerchant, theme_color: '#000000', status: 'active' }])
+    // New merchants get a 14 day trial by default
+    const trialEndDate = new Date()
+    trialEndDate.setDate(trialEndDate.getDate() + 14)
+    
+    const { error } = await supabase.from('merchants').insert([{ 
+      ...newMerchant, 
+      theme_color: '#000000', 
+      status: 'active',
+      subscription_plan: 'trial',
+      subscription_end_date: trialEndDate.toISOString()
+    }])
     if (!error) {
       alert('Client created successfully!')
       fetchMerchants()
@@ -89,7 +99,6 @@ export default function Admin() {
     }
   }
 
-  // --- NEW: TOGGLE SUBSCRIPTION STATUS ---
   async function handleToggleStatus(merchant) {
     const newStatus = merchant.status === 'suspended' ? 'active' : 'suspended'
     const confirmMessage = newStatus === 'suspended' 
@@ -105,6 +114,33 @@ export default function Admin() {
         if (selectedMerchant && selectedMerchant.id === merchant.id) {
           setSelectedMerchant({...selectedMerchant, status: newStatus})
         }
+      }
+    }
+  }
+
+  // --- SUBSCRIPTION RENEWAL LOGIC ---
+  async function handleRenewSubscription(planType) {
+    const daysToAdd = planType === 'monthly' ? 30 : 365;
+    
+    // If they are already expired, start from today. If they still have time, add to their existing time.
+    const currentEnd = selectedMerchant.subscription_end_date ? new Date(selectedMerchant.subscription_end_date) : new Date();
+    const baseDate = currentEnd > new Date() ? currentEnd : new Date();
+    
+    const newEndDate = new Date(baseDate.setDate(baseDate.getDate() + daysToAdd)).toISOString();
+
+    if (window.confirm(`Confirm renewal of ${selectedMerchant.business_name} for 1 ${planType === 'monthly' ? 'Month' : 'Year'}?`)) {
+      const { error } = await supabase.from('merchants').update({ 
+        subscription_plan: planType,
+        subscription_end_date: newEndDate,
+        status: 'active' // Auto-reactivate if they were suspended
+      }).eq('id', selectedMerchant.id)
+      
+      if (!error) {
+        alert('Subscription extended successfully!')
+        fetchMerchants()
+        setSelectedMerchant({...selectedMerchant, subscription_plan: planType, subscription_end_date: newEndDate, status: 'active'})
+      } else {
+        alert('Error: ' + error.message)
       }
     }
   }
@@ -152,6 +188,16 @@ export default function Admin() {
     await supabase.from('products').delete().eq('id', id)
     fetchProducts(selectedMerchant.id)
     fetchPlatformStats()
+  }
+
+  // Helper to calculate days remaining
+  function getDaysRemaining(endDateString) {
+    if (!endDateString) return 0;
+    const end = new Date(endDateString);
+    const today = new Date();
+    const diffTime = end - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
   }
 
   if (authLoading) return <div className="min-h-screen flex items-center justify-center bg-gray-50 text-xl font-bold">Checking access...</div>
@@ -217,31 +263,44 @@ export default function Admin() {
                     <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-100">
                       <th className="p-4 font-bold">Business</th>
                       <th className="p-4 font-bold">Status</th>
+                      <th className="p-4 font-bold">Time Left</th>
                       <th className="p-4 font-bold">Store Link</th>
                       <th className="p-4 font-bold text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {merchants.map(m => (
-                      <tr key={m.id} className="hover:bg-gray-50 transition-colors group">
-                        <td className="p-4 flex items-center gap-3">
-                          {m.logo_url ? <img src={m.logo_url} className="w-10 h-10 rounded-full object-cover border bg-white" /> : <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center font-bold text-gray-500 border border-gray-300">{m.business_name?.charAt(0)}</div>}
-                          <span className="font-bold text-gray-900">{m.business_name}</span>
-                        </td>
-                        <td className="p-4">
-                          <span className={`px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider ${m.status === 'suspended' ? 'bg-red-100 text-red-700 border border-red-200' : 'bg-green-100 text-green-700 border border-green-200'}`}>
-                            {m.status === 'suspended' ? 'Suspended' : 'Active'}
-                          </span>
-                        </td>
-                        <td className="p-4"><a href={`/${m.slug}`} target="_blank" rel="noreferrer" className="text-blue-600 font-semibold hover:underline flex items-center gap-1 w-fit">/{m.slug} <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></a></td>
-                        <td className="p-4 text-right">
-                          <div className="flex justify-end gap-2">
-                            <button onClick={() => { setSelectedMerchant(m); fetchProducts(m.id); setActiveView('manage'); }} className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-blue-100 border border-blue-200 transition-colors">Manage</button>
-                            <button onClick={() => handleDeleteMerchant(m.id)} className="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-red-100 border border-red-200 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100">Delete</button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                    {merchants.map(m => {
+                      const daysLeft = getDaysRemaining(m.subscription_end_date);
+                      let timeColor = 'text-green-600 bg-green-50';
+                      if (daysLeft <= 3 && daysLeft >= 0) timeColor = 'text-orange-600 bg-orange-50 border border-orange-200';
+                      if (daysLeft < 0) timeColor = 'text-red-600 bg-red-50 border border-red-200';
+
+                      return (
+                        <tr key={m.id} className="hover:bg-gray-50 transition-colors group">
+                          <td className="p-4 flex items-center gap-3">
+                            {m.logo_url ? <img src={m.logo_url} className="w-10 h-10 rounded-full object-cover border bg-white" /> : <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center font-bold text-gray-500 border border-gray-300">{m.business_name?.charAt(0)}</div>}
+                            <span className="font-bold text-gray-900">{m.business_name}</span>
+                          </td>
+                          <td className="p-4">
+                            <span className={`px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider ${m.status === 'suspended' ? 'bg-red-100 text-red-700 border border-red-200' : 'bg-green-100 text-green-700 border border-green-200'}`}>
+                              {m.status === 'suspended' ? 'Suspended' : 'Active'}
+                            </span>
+                          </td>
+                          <td className="p-4">
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${timeColor}`}>
+                              {daysLeft < 0 ? 'Expired' : daysLeft === 0 ? 'Expires Today' : `${daysLeft} Days`}
+                            </span>
+                          </td>
+                          <td className="p-4"><a href={`/${m.slug}`} target="_blank" rel="noreferrer" className="text-blue-600 font-semibold hover:underline flex items-center gap-1 w-fit">/{m.slug} <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></a></td>
+                          <td className="p-4 text-right">
+                            <div className="flex justify-end gap-2">
+                              <button onClick={() => { setSelectedMerchant(m); fetchProducts(m.id); setActiveView('manage'); }} className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-blue-100 border border-blue-200 transition-colors">Manage</button>
+                              <button onClick={() => handleDeleteMerchant(m.id)} className="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-red-100 border border-red-200 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100">Delete</button>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -259,6 +318,7 @@ export default function Admin() {
                 <div><label className="block text-sm font-bold mb-1.5 text-gray-700">WhatsApp Number</label><input required type="tel" className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-black outline-none bg-gray-50 focus:bg-white" value={newMerchant.phone_number} onChange={e => setNewMerchant({...newMerchant, phone_number: e.target.value})} /></div>
                 <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Manager PIN</label><input required maxLength="4" className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-black outline-none bg-gray-50 focus:bg-white" value={newMerchant.pin_code} onChange={e => setNewMerchant({...newMerchant, pin_code: e.target.value})} /></div>
               </div>
+              <p className="text-sm text-gray-500 mt-2 font-medium">New clients automatically receive a 14-day free trial.</p>
               <button type="submit" className="bg-green-600 text-white px-4 py-3.5 mt-4 rounded-xl font-bold w-full text-lg shadow-sm hover:bg-green-700 transition-colors">Launch Client Space</button>
             </form>
           </div>
@@ -268,6 +328,39 @@ export default function Admin() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="space-y-6">
               
+              {/* NEW: SUBSCRIPTION MANAGEMENT */}
+              <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
+                <h2 className="text-xl font-bold text-gray-800 mb-4">Subscription</h2>
+                
+                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 mb-6">
+                  <div className="flex justify-between items-end mb-2">
+                    <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Plan</span>
+                    <span className="font-black text-gray-900 capitalize">{selectedMerchant.subscription_plan}</span>
+                  </div>
+                  <div className="flex justify-between items-end mb-2">
+                    <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Expires</span>
+                    <span className="font-bold text-gray-900">{selectedMerchant.subscription_end_date ? new Date(selectedMerchant.subscription_end_date).toLocaleDateString() : 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between items-end pt-2 border-t border-gray-200">
+                    <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Time Left</span>
+                    <span className={`font-bold px-2 py-0.5 rounded text-sm ${getDaysRemaining(selectedMerchant.subscription_end_date) <= 3 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                      {getDaysRemaining(selectedMerchant.subscription_end_date)} Days
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <button onClick={() => handleRenewSubscription('monthly')} className="w-full bg-black text-white py-3 rounded-lg font-bold hover:bg-gray-800 transition-colors shadow-sm flex justify-between px-4">
+                    <span>Renew Monthly</span>
+                    <span className="text-gray-300">₦1,400</span>
+                  </button>
+                  <button onClick={() => handleRenewSubscription('yearly')} className="w-full bg-white text-gray-900 border-2 border-gray-200 py-3 rounded-lg font-bold hover:bg-gray-50 transition-colors shadow-sm flex justify-between px-4">
+                    <span>Renew Yearly</span>
+                    <span className="text-gray-500">₦13,440</span>
+                  </button>
+                </div>
+              </div>
+
               {/* PLATFORM STATUS (KILL SWITCH) */}
               <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
                 <h2 className="text-xl font-bold text-gray-800 mb-2">Platform Status</h2>
