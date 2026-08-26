@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from './supabaseClient'
 
@@ -145,11 +145,11 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="mt-8 flex justify-center gap-4 text-gray-500 text-sm font-medium">
-             <a href="#" className="hover:text-white transition-colors">Terms & Conditions</a>
+             <a href="/terms" className="hover:text-white transition-colors">Terms & Conditions</a>
              <span>|</span>
-             <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
+             <a href="/privacy" className="hover:text-white transition-colors">Privacy Policy</a>
           </div>
-          <p className="text-gray-600 text-xs font-medium mt-4">© {new Date().getFullYear()} Crudhub. Powered by SolutionPRO Technologies. All rights reserved.</p>
+          <p className="text-gray-600 text-xs font-medium mt-4">� {new Date().getFullYear()} Crudhub. Powered by SolutionPRO Technologies. All rights reserved.</p>
         </div>
       </footer>
 
@@ -214,7 +214,7 @@ export default function LandingPage() {
                   className="mt-1 w-4 h-4 text-black focus:ring-black rounded border-gray-300"
                 />
                 <label htmlFor="terms" className="text-sm text-gray-600 font-medium leading-tight">
-                  I agree to the <a href="#" className="text-blue-600 hover:underline">Terms & Conditions</a> and confirm my business operates legally within my jurisdiction.
+                  I agree to the <a href="/terms" target="_blank" className="text-blue-600 hover:underline">Terms & Conditions</a> and confirm my business operates legally within my jurisdiction.
                 </label>
               </div>
 

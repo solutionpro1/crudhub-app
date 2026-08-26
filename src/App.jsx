@@ -1,25 +1,23 @@
-﻿import { BrowserRouter, Routes, Route } from 'react-router-dom'
+﻿import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import LandingPage from './LandingPage'
-import Storefront from './Storefront'
 import Admin from './Admin'
 import MerchantPortal from './MerchantPortal'
+import Storefront from './Storefront'
+import Terms from './Terms'
+import Privacy from './Privacy'
 
-export default function App() {
+function App() {
   return (
-    <BrowserRouter>
+    <Router>
       <Routes>
-        {/* The Front Door */}
         <Route path="/" element={<LandingPage />} />
-        
-        {/* The Super Admin Dashboard */}
         <Route path="/admin" element={<Admin />} />
-        
-        {/* The client's management portal */}
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/privacy" element={<Privacy />} />
         <Route path="/:storeSlug/manage" element={<MerchantPortal />} />
-        
-        {/* The public storefront */}
         <Route path="/:storeSlug" element={<Storefront />} />
       </Routes>
-    </BrowserRouter>
+    </Router>
   )
 }
+export default App
