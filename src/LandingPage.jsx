@@ -11,6 +11,7 @@ export default function LandingPage() {
   const [newStore, setNewStore] = useState({ business_name: '', slug: '', phone_number: '', pin_code: '' })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [signupError, setSignupError] = useState('')
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
 
   function handleLogin(e) {
     e.preventDefault()
@@ -30,6 +31,11 @@ export default function LandingPage() {
 
   async function handleSignup(e) {
     e.preventDefault()
+    if (!agreedToTerms) {
+      setSignupError('You must agree to the Terms & Conditions to proceed.')
+      return
+    }
+    
     setIsSubmitting(true)
     setSignupError('')
 
@@ -138,7 +144,12 @@ export default function LandingPage() {
               <span>33A Olorunsogo Street, Sote<br/>Ibafo, Ogun State</span>
             </div>
           </div>
-          <p className="text-gray-600 text-xs font-medium mt-12">© {new Date().getFullYear()} Crudhub. Powered by SolutionPRO Technologies. All rights reserved.</p>
+          <div className="mt-8 flex justify-center gap-4 text-gray-500 text-sm font-medium">
+             <a href="#" className="hover:text-white transition-colors">Terms & Conditions</a>
+             <span>|</span>
+             <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
+          </div>
+          <p className="text-gray-600 text-xs font-medium mt-4">© {new Date().getFullYear()} Crudhub. Powered by SolutionPRO Technologies. All rights reserved.</p>
         </div>
       </footer>
 
@@ -163,7 +174,6 @@ export default function LandingPage() {
         </div>
       )}
 
-      {/* NEW SELF-SERVE SIGNUP MODAL */}
       {isSignupOpen && (
         <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md relative animate-slide-in">
@@ -175,7 +185,7 @@ export default function LandingPage() {
             <form onSubmit={handleSignup} className="space-y-4">
               <div>
                 <label className="block text-sm font-bold mb-1.5 text-gray-700">Business Name</label>
-                <input required className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-black outline-none bg-gray-50 focus:bg-white" value={newStore.business_name} onChange={handleBusinessNameChange} placeholder="e.g., SolutionPRO Gadgets" />
+                <input required className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-black outline-none bg-gray-50 focus:bg-white" value={newStore.business_name} onChange={handleBusinessNameChange} placeholder="e.g., Olamide's Boutique" />
               </div>
               <div>
                 <label className="block text-sm font-bold mb-1.5 text-gray-700">Store Link</label>
@@ -193,8 +203,23 @@ export default function LandingPage() {
                 <input required type="password" maxLength="4" className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-black outline-none bg-gray-50 focus:bg-white tracking-widest font-mono" value={newStore.pin_code} onChange={e => setNewStore({...newStore, pin_code: e.target.value.replace(/\D/g, '')})} placeholder="1234" />
                 <p className="text-xs text-gray-400 mt-1">You will use this PIN to log into your merchant portal.</p>
               </div>
+              
+              {/* THE LEGAL CHECKBOX */}
+              <div className="flex items-start gap-3 mt-4 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                <input 
+                  type="checkbox" 
+                  id="terms" 
+                  checked={agreedToTerms} 
+                  onChange={(e) => setAgreedToTerms(e.target.checked)}
+                  className="mt-1 w-4 h-4 text-black focus:ring-black rounded border-gray-300"
+                />
+                <label htmlFor="terms" className="text-sm text-gray-600 font-medium leading-tight">
+                  I agree to the <a href="#" className="text-blue-600 hover:underline">Terms & Conditions</a> and confirm my business operates legally within my jurisdiction.
+                </label>
+              </div>
+
               {signupError && <p className="text-red-500 text-sm font-bold">{signupError}</p>}
-              <button type="submit" disabled={isSubmitting} className="w-full bg-black text-white font-bold py-3.5 mt-2 rounded-xl hover:bg-gray-800 transition-colors shadow-md disabled:bg-gray-400">
+              <button type="submit" disabled={isSubmitting || !agreedToTerms} className="w-full bg-black text-white font-bold py-3.5 mt-2 rounded-xl hover:bg-gray-800 transition-colors shadow-md disabled:bg-gray-400">
                 {isSubmitting ? 'Creating Store...' : 'Launch Store Now'}
               </button>
             </form>
