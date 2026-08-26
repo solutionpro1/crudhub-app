@@ -1,10 +1,16 @@
 ﻿import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { supabase } from './supabaseClient'
 
 export default function LandingPage() {
   const [isLoginOpen, setIsLoginOpen] = useState(false)
+  const [isSignupOpen, setIsSignupOpen] = useState(false)
   const [storeSlug, setStoreSlug] = useState('')
   const navigate = useNavigate()
+
+  const [newStore, setNewStore] = useState({ business_name: '', slug: '', phone_number: '', pin_code: '' })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [signupError, setSignupError] = useState('')
 
   function handleLogin(e) {
     e.preventDefault()
@@ -13,11 +19,50 @@ export default function LandingPage() {
     }
   }
 
-  // Pre-filled WhatsApp URLs
-  const launchMessage = "Hello SolutionPRO! I want to launch my business on Crudhub. Let's get started!"
+  function handleBusinessNameChange(e) {
+    const name = e.target.value
+    setNewStore({
+      ...newStore,
+      business_name: name,
+      slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')
+    })
+  }
+
+  async function handleSignup(e) {
+    e.preventDefault()
+    setIsSubmitting(true)
+    setSignupError('')
+
+    const { data: existing } = await supabase.from('merchants').select('id').eq('slug', newStore.slug).single()
+    if (existing) {
+       setSignupError('This store URL is already taken. Please choose another one.')
+       setIsSubmitting(false)
+       return
+    }
+
+    const trialEndDate = new Date()
+    trialEndDate.setDate(trialEndDate.getDate() + 14)
+
+    const { error } = await supabase.from('merchants').insert([{
+      business_name: newStore.business_name,
+      slug: newStore.slug,
+      phone_number: newStore.phone_number,
+      pin_code: newStore.pin_code,
+      theme_color: '#000000',
+      status: 'active',
+      subscription_plan: 'trial',
+      subscription_end_date: trialEndDate.toISOString()
+    }])
+
+    if (error) {
+      setSignupError(error.message)
+      setIsSubmitting(false)
+    } else {
+      navigate(`/${newStore.slug}/manage`)
+    }
+  }
+
   const salesMessage = "Hello SolutionPRO! I would like to talk to sales about setting up my Crudhub store."
-  
-  const whatsappLaunchUrl = `https://wa.me/2349028116376?text=${encodeURIComponent(launchMessage)}`
   const whatsappSalesUrl = `https://wa.me/2349028116376?text=${encodeURIComponent(salesMessage)}`
 
   return (
@@ -36,10 +81,10 @@ export default function LandingPage() {
         <h1 className="text-5xl md:text-7xl font-black tracking-tight mb-6 leading-tight">Your Business.<br/><span className="text-green-600">On WhatsApp.</span></h1>
         <p className="text-xl text-gray-500 mb-10 max-w-2xl mx-auto font-medium">Take your boutique, pharmacy, restaurant, or retail shop online in minutes. Get a beautiful digital storefront, custom QR codes, and receive every order directly to your WhatsApp. Zero commissions.</p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <a href={whatsappLaunchUrl} target="_blank" rel="noreferrer" className="bg-black text-white px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:bg-gray-800 transition-transform active:scale-95 flex items-center justify-center gap-2">
+          <button onClick={() => setIsSignupOpen(true)} className="bg-black text-white px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:bg-gray-800 transition-transform active:scale-95 flex items-center justify-center gap-2">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
             Launch Your Store
-          </a>
+          </button>
           <a href="#features" className="bg-white text-gray-900 border-2 border-gray-200 px-8 py-4 rounded-xl font-bold text-lg hover:border-gray-300 transition-colors">See How it Works</a>
         </div>
       </section>
@@ -108,11 +153,50 @@ export default function LandingPage() {
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
                 <div className="flex items-center bg-gray-50 border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-black focus-within:border-transparent transition-shadow">
-                  <span className="pl-4 text-gray-400 font-medium text-sm">crudhub.app/</span>
+                  <span className="pl-4 text-gray-400 font-medium text-sm">crudhub.com.ng/</span>
                   <input required placeholder="your-store" className="w-full p-3 bg-transparent outline-none font-bold text-gray-900" value={storeSlug} onChange={e => setStoreSlug(e.target.value)} />
                 </div>
               </div>
               <button type="submit" className="w-full bg-black text-white font-bold py-3.5 rounded-xl hover:bg-gray-800 transition-colors shadow-md">Go to Portal</button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* NEW SELF-SERVE SIGNUP MODAL */}
+      {isSignupOpen && (
+        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md relative animate-slide-in">
+            <button onClick={() => setIsSignupOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+            <h2 className="text-2xl font-bold mb-2">Create Your Store</h2>
+            <p className="text-gray-500 text-sm font-medium mb-6">Start your 14-day free trial immediately. No credit card required.</p>
+            <form onSubmit={handleSignup} className="space-y-4">
+              <div>
+                <label className="block text-sm font-bold mb-1.5 text-gray-700">Business Name</label>
+                <input required className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-black outline-none bg-gray-50 focus:bg-white" value={newStore.business_name} onChange={handleBusinessNameChange} placeholder="e.g., SolutionPRO Gadgets" />
+              </div>
+              <div>
+                <label className="block text-sm font-bold mb-1.5 text-gray-700">Store Link</label>
+                <div className="flex items-center bg-gray-50 border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-black focus-within:border-transparent transition-shadow">
+                  <span className="pl-3 text-gray-400 font-medium text-sm">crudhub.com.ng/</span>
+                  <input required className="w-full p-3 bg-transparent outline-none font-bold text-gray-900" value={newStore.slug} onChange={e => setNewStore({...newStore, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')})} placeholder="your-store" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-bold mb-1.5 text-gray-700">WhatsApp Number</label>
+                <input required type="tel" className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-black outline-none bg-gray-50 focus:bg-white" value={newStore.phone_number} onChange={e => setNewStore({...newStore, phone_number: e.target.value})} placeholder="+234..." />
+              </div>
+              <div>
+                <label className="block text-sm font-bold mb-1.5 text-gray-700">Create a 4-Digit PIN</label>
+                <input required type="password" maxLength="4" className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-black outline-none bg-gray-50 focus:bg-white tracking-widest font-mono" value={newStore.pin_code} onChange={e => setNewStore({...newStore, pin_code: e.target.value.replace(/\D/g, '')})} placeholder="1234" />
+                <p className="text-xs text-gray-400 mt-1">You will use this PIN to log into your merchant portal.</p>
+              </div>
+              {signupError && <p className="text-red-500 text-sm font-bold">{signupError}</p>}
+              <button type="submit" disabled={isSubmitting} className="w-full bg-black text-white font-bold py-3.5 mt-2 rounded-xl hover:bg-gray-800 transition-colors shadow-md disabled:bg-gray-400">
+                {isSubmitting ? 'Creating Store...' : 'Launch Store Now'}
+              </button>
             </form>
           </div>
         </div>
