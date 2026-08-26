@@ -1,354 +1,242 @@
 ﻿import { useEffect, useState } from 'react'
-import { supabase } from './supabaseClient'
 import { useParams } from 'react-router-dom'
+import { supabase } from './supabaseClient'
 
 export default function MerchantPortal() {
   const { storeSlug } = useParams()
   const [merchant, setMerchant] = useState(null)
-  const [products, setProducts] = useState([])
-  const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('orders') // Default to orders tab now!
   
-  const [pinInput, setPinInput] = useState('')
+  // Authentication State
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [pinInput, setPinInput] = useState('')
   const [authError, setAuthError] = useState('')
 
-  const [newProduct, setNewProduct] = useState({ name: '', description: '', price: '', category: '' })
-  const [productImageFile, setProductImageFile] = useState(null)
-  const [logoFile, setLogoFile] = useState(null)
-  const [isUploading, setIsUploading] = useState(false)
+  // Dashboard State
+  const [activeTab, setActiveTab] = useState('orders')
+  const [orders, setOrders] = useState([])
+  const [products, setProducts] = useState([])
 
   useEffect(() => {
-    async function fetchMerchant() {
-      const { data } = await supabase.from('merchants').select('*').eq('slug', storeSlug).single()
-      setMerchant(data)
-      setLoading(false)
-    }
-    fetchMerchant()
+    fetchMerchantDetails()
   }, [storeSlug])
 
-  async function fetchProducts() {
-    const { data } = await supabase.from('products').select('*').eq('merchant_id', merchant.id).order('created_at', { ascending: false })
-    setProducts(data || [])
+  async function fetchMerchantDetails() {
+    const { data, error } = await supabase
+      .from('merchants')
+      .select('*')
+      .eq('slug', storeSlug)
+      .single()
+
+    if (error || !data) {
+      alert('Store not found!')
+    } else {
+      setMerchant(data)
+    }
+    setLoading(false)
   }
 
-  async function fetchOrders() {
-    const { data } = await supabase.from('orders').select('*').eq('merchant_id', merchant.id).order('created_at', { ascending: false })
+  async function handleLogin(e) {
+    e.preventDefault()
+    if (pinInput === merchant.pin_code) {
+      setIsAuthenticated(true)
+      fetchOrders(merchant.id)
+      fetchProducts(merchant.id)
+    } else {
+      setAuthError('Incorrect PIN code. Please try again.')
+    }
+  }
+
+  async function fetchOrders(merchantId) {
+    const { data } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('merchant_id', merchantId)
+      .order('created_at', { ascending: false })
     setOrders(data || [])
   }
 
-  const handleLogin = (e) => {
-    e.preventDefault()
-    if (merchant && pinInput === merchant.pin_code) {
-      setIsAuthenticated(true)
-      fetchProducts()
-      fetchOrders()
-    } else { setAuthError('Incorrect PIN code') }
+  async function fetchProducts(merchantId) {
+    const { data } = await supabase
+      .from('products')
+      .select('*')
+      .eq('merchant_id', merchantId)
+    setProducts(data || [])
   }
 
-  async function uploadFile(file, pathPrefix) {
-    if (!file) return null;
-    const fileExt = file.name.split('.').pop()
-    const fileName = `${pathPrefix}-${Date.now()}.${fileExt}`
-    const { error } = await supabase.storage.from('crudhub-images').upload(fileName, file)
-    if (error) { alert('Upload failed: ' + error.message); return null; }
-    const { data } = await supabase.storage.from('crudhub-images').getPublicUrl(fileName)
-    return data.publicUrl
-  }
-
-  async function handleSaveProfile(e) {
-    e.preventDefault()
-    setIsUploading(true)
-    let logo_url = merchant.logo_url
-    if (logoFile) {
-      const uploadedUrl = await uploadFile(logoFile, `logos/${merchant.slug}`)
-      if (uploadedUrl) logo_url = uploadedUrl
-    }
-
-    const { error } = await supabase.from('merchants').update({
-      business_name: merchant.business_name,
-      theme_color: merchant.theme_color,
-      about_text: merchant.about_text,
-      contact_phone: merchant.contact_phone,
-      contact_email: merchant.contact_email,
-      location: merchant.location,
-      facebook_url: merchant.facebook_url,
-      instagram_url: merchant.instagram_url,
-      tiktok_url: merchant.tiktok_url,
-      youtube_url: merchant.youtube_url,
-      x_url: merchant.x_url,
-      linkedin_url: merchant.linkedin_url,
-      logo_url: logo_url
-    }).eq('id', merchant.id)
-
+  async function updateOrderStatus(orderId, newStatus) {
+    const { error } = await supabase
+      .from('orders')
+      .update({ status: newStatus })
+      .eq('id', orderId)
+    
     if (!error) {
-      alert('Store profile updated successfully!')
-      setLogoFile(null)
-    } else { alert('Error updating profile: ' + error.message) }
-    setIsUploading(false)
-  }
-
-  async function handleAddProduct(e) {
-    e.preventDefault()
-    setIsUploading(true)
-    let image_url = null
-    if (productImageFile) { image_url = await uploadFile(productImageFile, `products/${merchant.slug}`) }
-    const { error } = await supabase.from('products').insert([{ ...newProduct, merchant_id: merchant.id, image_url: image_url, in_stock: true }])
-    if (!error) {
-      fetchProducts()
-      setNewProduct({ name: '', description: '', price: '', category: '' })
-      setProductImageFile(null)
-      document.getElementById('product-image').value = ''
-    } else { alert('Error: ' + error.message) }
-    setIsUploading(false)
-  }
-
-  async function handleDeleteProduct(id) {
-    if (window.confirm('Delete this item?')) {
-      await supabase.from('products').delete().eq('id', id)
-      fetchProducts()
+      fetchOrders(merchant.id)
+    } else {
+      alert('Failed to update status: ' + error.message)
     }
   }
 
-  async function handleToggleStock(id, currentStatus) {
-    await supabase.from('products').update({ in_stock: !currentStatus }).eq('id', id)
-    fetchProducts()
-  }
+  if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-xl">Loading space...</div>
+  if (!merchant) return <div className="min-h-screen flex items-center justify-center font-bold text-xl text-red-600">Store not found.</div>
 
-  async function handleUpdateOrderStatus(orderId, newStatus) {
-    const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId)
-    if (!error) fetchOrders()
-    else alert('Error updating order: ' + error.message)
-  }
-
-  if (loading) return <div className="min-h-screen flex items-center justify-center font-bold">Loading portal...</div>
-  if (!merchant) return <div className="min-h-screen flex items-center justify-center text-red-500 font-bold">Store not found!</div>
-
+  // --- LOGIN SCREEN ---
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="max-w-sm w-full bg-white rounded-xl shadow-md p-8 border border-gray-100 text-center">
-          {merchant.logo_url && <img src={merchant.logo_url} alt="Logo" className="h-16 w-16 mx-auto rounded-full object-cover mb-4 border shadow-sm" />}
-          <h1 className="text-xl font-bold mb-2">{merchant.business_name}</h1>
-          <p className="text-gray-500 text-sm mb-6">Enter your 4-digit manager PIN</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-sans">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-sm border border-gray-200 p-8 text-center">
+          {merchant.logo_url ? (
+            <img src={merchant.logo_url} alt="Logo" className="w-24 h-24 mx-auto rounded-full object-cover border-4 mb-4 shadow-sm" style={{ borderColor: merchant.theme_color || '#000' }} />
+          ) : (
+            <div className="w-24 h-24 mx-auto rounded-full flex items-center justify-center text-3xl font-bold text-white mb-4 shadow-sm" style={{ backgroundColor: merchant.theme_color || '#000' }}>
+              {merchant.business_name.charAt(0)}
+            </div>
+          )}
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">{merchant.business_name}</h1>
+          <p className="text-gray-500 mb-6 font-medium">Enter your 4-digit Manager PIN to access your workspace.</p>
+          
           <form onSubmit={handleLogin} className="space-y-4">
-            <input type="password" maxLength="4" required className="w-full text-center text-2xl tracking-widest border p-3 rounded-lg focus:ring-2 outline-none" placeholder="••••" value={pinInput} onChange={e => setPinInput(e.target.value)} />
+            <input 
+              type="password" 
+              maxLength="4"
+              required
+              className="w-full text-center text-3xl tracking-[1em] font-mono border-2 p-4 rounded-xl outline-none focus:border-black transition-colors" 
+              value={pinInput} 
+              onChange={e => { setPinInput(e.target.value); setAuthError(''); }} 
+            />
             {authError && <p className="text-red-500 text-sm font-bold">{authError}</p>}
-            <button type="submit" className="w-full text-white font-bold py-3 rounded-lg transition-opacity hover:opacity-90" style={{ backgroundColor: merchant.theme_color || '#000000' }}>Access Portal</button>
+            <button type="submit" className="w-full text-white font-bold py-4 rounded-xl text-lg shadow-sm transition-transform active:scale-95" style={{ backgroundColor: merchant.theme_color || '#000' }}>
+              Unlock Portal
+            </button>
           </form>
         </div>
       </div>
     )
   }
 
-  const pendingOrdersCount = orders.filter(o => o.status === 'Pending').length
+  // --- DASHBOARD SCREEN ---
+  const storeUrl = `https://crudhub-app.vercel.app/${merchant.slug}`
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(storeUrl)}`
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans pb-20">
-      <header className="text-white p-6 shadow-md" style={{ backgroundColor: merchant.theme_color || '#000000' }}>
-        <div className="max-w-4xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            {merchant.logo_url && <img src={merchant.logo_url} alt="Logo" className="w-10 h-10 rounded-full object-cover border-2 border-white bg-white" />}
-            <h1 className="text-xl font-bold">Manager: {merchant.business_name}</h1>
+    <div className="min-h-screen bg-gray-100 font-sans pb-20">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+        <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            {merchant.logo_url && <img src={merchant.logo_url} alt="Logo" className="w-10 h-10 rounded-full object-cover border" />}
+            <h1 className="text-xl font-black text-gray-900">{merchant.business_name} Workspace</h1>
           </div>
-          <button onClick={() => setIsAuthenticated(false)} className="bg-white/20 px-4 py-2 rounded-full font-semibold text-sm hover:bg-white/30">Logout</button>
-        </div>
-      </header>
-
-      {/* Navigation Tabs */}
-      <div className="max-w-4xl mx-auto px-6 mt-6 overflow-x-auto">
-        <div className="flex border-b border-gray-200 gap-6 whitespace-nowrap min-w-max">
-          <button onClick={() => setActiveTab('orders')} className={`pb-3 font-bold border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'orders' ? 'border-black text-black' : 'border-transparent text-gray-400 hover:text-gray-600'}`}>
-            Incoming Orders
-            {pendingOrdersCount > 0 && <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{pendingOrdersCount}</span>}
-          </button>
-          <button onClick={() => setActiveTab('menu')} className={`pb-3 font-bold border-b-2 transition-colors ${activeTab === 'menu' ? 'border-black text-black' : 'border-transparent text-gray-400 hover:text-gray-600'}`}>
-            Manage Menu / Products
-          </button>
-          <button onClick={() => setActiveTab('profile')} className={`pb-3 font-bold border-b-2 transition-colors ${activeTab === 'profile' ? 'border-black text-black' : 'border-transparent text-gray-400 hover:text-gray-600'}`}>
-            Store Profile, About & Socials
-          </button>
+          <button onClick={() => setIsAuthenticated(false)} className="text-gray-500 hover:text-red-600 font-bold text-sm bg-gray-50 px-4 py-2 rounded-lg border hover:bg-red-50 transition-colors">Lock Portal</button>
         </div>
       </div>
 
-      <main className="max-w-4xl mx-auto p-6">
+      <div className="max-w-6xl mx-auto px-6 mt-8 grid grid-cols-1 md:grid-cols-4 gap-8">
         
-        {/* ORDERS TAB */}
-        {activeTab === 'orders' && (
-          <div className="space-y-6">
-            <h2 className="text-xl font-bold text-gray-800">Order Management</h2>
-            {orders.length === 0 ? (
-              <div className="bg-white rounded-xl p-8 text-center border text-gray-500 shadow-sm">No orders have been placed yet.</div>
-            ) : (
-              <div className="space-y-4">
-                {orders.map(order => (
-                  <div key={order.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                    <div className="p-4 border-b bg-gray-50 flex flex-wrap justify-between items-center gap-4">
-                      <div>
-                        <h3 className="font-bold text-lg text-gray-900">{order.customer_name}</h3>
-                        <p className="text-sm text-gray-500">{new Date(order.created_at).toLocaleString()}</p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className={`px-3 py-1 text-sm font-bold rounded-full ${
-                          order.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
-                          order.status === 'Processing' ? 'bg-blue-100 text-blue-800' :
-                          order.status === 'Completed' ? 'bg-green-100 text-green-800' :
-                          'bg-red-100 text-red-800'
-                        }`}>
-                          {order.status}
-                        </span>
-                        <select 
-                          value={order.status} 
-                          onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value)}
-                          className="border border-gray-300 rounded text-sm p-1.5 font-semibold text-gray-700 bg-white"
-                        >
-                          <option value="Pending">Pending</option>
-                          <option value="Processing">Processing</option>
-                          <option value="Completed">Completed</option>
-                          <option value="Cancelled">Cancelled</option>
-                        </select>
-                      </div>
-                    </div>
-                    
-                    <div className="p-4 flex flex-col md:flex-row gap-6">
-                      <div className="flex-1 space-y-2">
-                        <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Delivery Details</h4>
-                        <p className="text-gray-800 text-sm whitespace-pre-wrap"><span className="font-semibold">Address:</span> {order.customer_address}</p>
-                        {order.customer_notes && <p className="text-gray-800 text-sm"><span className="font-semibold">Notes:</span> {order.customer_notes}</p>}
-                      </div>
-                      <div className="flex-1 space-y-2">
-                         <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Order Items</h4>
-                         <ul className="text-sm space-y-1">
-                           {order.items.map((item, i) => (
-                             <li key={i} className="flex justify-between border-b border-dashed border-gray-200 pb-1">
-                               <span>{item.name}</span>
-                               <span className="font-medium text-gray-600">₦{Number(item.price).toLocaleString()}</span>
-                             </li>
-                           ))}
-                         </ul>
-                         <div className="flex justify-between pt-2 font-bold text-gray-900">
-                           <span>Total:</span>
-                           <span className="text-green-700">₦{Number(order.total_amount).toLocaleString()}</span>
-                         </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+        {/* Sidebar Navigation */}
+        <div className="space-y-2">
+          <button onClick={() => setActiveTab('orders')} className={`w-full text-left px-5 py-4 rounded-xl font-bold transition-colors ${activeTab === 'orders' ? 'bg-black text-white shadow-md' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'}`}>🛍️ Order History</button>
+          <button onClick={() => setActiveTab('qr')} className={`w-full text-left px-5 py-4 rounded-xl font-bold transition-colors ${activeTab === 'qr' ? 'bg-black text-white shadow-md' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'}`}>📲 Store QR Code</button>
+          <button onClick={() => setActiveTab('catalog')} className={`w-full text-left px-5 py-4 rounded-xl font-bold transition-colors ${activeTab === 'catalog' ? 'bg-black text-white shadow-md' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'}`}>📦 My Catalog</button>
+        </div>
 
-        {/* MENU TAB */}
-        {activeTab === 'menu' && (
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Add New Item</h2>
-            <form onSubmit={handleAddProduct} className="flex flex-col gap-4 mb-8 bg-gray-50 p-4 rounded border">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <input required placeholder="Item Name" className="border p-2 rounded bg-white" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
-                <input required type="number" placeholder="Price (₦)" className="border p-2 rounded bg-white" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} />
-                <input required placeholder="Category (e.g. Services, Drinks)" className="border p-2 rounded bg-white" value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} />
+        {/* Main Content Area */}
+        <div className="md:col-span-3">
+          
+          {/* ORDERS TAB */}
+          {activeTab === 'orders' && (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="p-6 border-b border-gray-100 bg-gray-50/50">
+                <h2 className="text-xl font-bold text-gray-800">Recent Orders</h2>
               </div>
-              <textarea placeholder="Short Description" className="border p-2 rounded w-full bg-white" rows="2" value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})}></textarea>
-              <div className="flex gap-3 items-center">
-                <input id="product-image" type="file" accept="image/*" onChange={e => setProductImageFile(e.target.files[0])} className="border p-2 rounded flex-1 text-sm bg-white" />
-                <button type="submit" disabled={isUploading} className="text-white px-6 py-2 rounded font-bold disabled:opacity-50" style={{ backgroundColor: merchant.theme_color || '#000000' }}>
-                  {isUploading ? 'Uploading...' : '+ Add Item'}
-                </button>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b">
+                      <th className="p-4 font-bold">Date</th>
+                      <th className="p-4 font-bold">Customer</th>
+                      <th className="p-4 font-bold">Total</th>
+                      <th className="p-4 font-bold">Status</th>
+                      <th className="p-4 font-bold">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {orders.map(order => (
+                      <tr key={order.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="p-4 text-sm font-medium text-gray-600">{new Date(order.created_at).toLocaleDateString()}</td>
+                        <td className="p-4">
+                          <p className="font-bold text-gray-900">{order.customer_name}</p>
+                          <p className="text-xs text-gray-500">{order.customer_address}</p>
+                        </td>
+                        <td className="p-4 font-bold text-green-700">₦{Number(order.total_amount).toLocaleString()}</td>
+                        <td className="p-4">
+                          <span className={`px-3 py-1 rounded-full text-xs font-bold ${order.status === 'Completed' ? 'bg-green-100 text-green-800' : order.status === 'Processing' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                            {order.status}
+                          </span>
+                        </td>
+                        <td className="p-4">
+                          <select 
+                            className="border border-gray-300 rounded-lg text-sm p-1.5 outline-none focus:ring-2 focus:ring-black font-medium cursor-pointer"
+                            value={order.status}
+                            onChange={(e) => updateOrderStatus(order.id, e.target.value)}
+                          >
+                            <option value="Pending">Pending</option>
+                            <option value="Processing">Processing</option>
+                            <option value="Completed">Completed</option>
+                          </select>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {orders.length === 0 && <div className="p-12 text-center text-gray-400 font-medium text-lg">No orders yet. Keep pushing your link!</div>}
               </div>
-            </form>
-
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Current Catalog</h2>
-            <div className="space-y-3">
-              {products.map(p => (
-                <div key={p.id} className={`flex justify-between items-center p-3 border rounded ${p.in_stock !== false ? 'bg-gray-50' : 'bg-red-50 border-red-200'}`}>
-                  <div className="flex items-center gap-4">
-                    {p.image_url ? <img src={p.image_url} alt={p.name} className={`w-16 h-16 object-cover rounded border ${p.in_stock === false && 'grayscale opacity-50'}`} /> : <div className="w-16 h-16 bg-gray-200 rounded flex items-center justify-center text-xs text-gray-500">No Img</div>}
-                    <div>
-                      <h4 className={`font-bold ${p.in_stock !== false ? 'text-gray-900' : 'text-gray-500 line-through'}`}>{p.name}</h4>
-                      <p className={`text-sm font-bold ${p.in_stock !== false ? 'text-green-700' : 'text-gray-400'}`}>₦{p.price}</p>
-                      <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded mt-1 inline-block">{p.category}</span>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => handleToggleStock(p.id, p.in_stock !== false)} className={`px-4 py-2 rounded text-sm font-bold ${p.in_stock !== false ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}>
-                      {p.in_stock !== false ? 'Mark Sold Out' : 'Mark In Stock'}
-                    </button>
-                    <button onClick={() => handleDeleteProduct(p.id)} className="bg-red-100 text-red-600 px-4 py-2 rounded text-sm font-bold hover:bg-red-200">Delete</button>
-                  </div>
-                </div>
-              ))}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* PROFILE TAB */}
-        {activeTab === 'profile' && (
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Store Branding & Profile</h2>
-            <form onSubmit={handleSaveProfile} className="space-y-5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Business Name</label>
-                  <input required className="w-full border p-2 rounded" value={merchant.business_name || ''} onChange={e => setMerchant({...merchant, business_name: e.target.value})} />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Theme Color</label>
-                  <div className="flex gap-2 items-center">
-                    <input type="color" className="w-12 h-10 rounded cursor-pointer border p-1" value={merchant.theme_color || '#000000'} onChange={e => setMerchant({...merchant, theme_color: e.target.value})} />
-                    <span className="text-sm font-mono text-gray-500">{merchant.theme_color || '#000000'}</span>
-                  </div>
-                </div>
+          {/* QR CODE TAB */}
+          {activeTab === 'qr' && (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 text-center max-w-lg mx-auto">
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Your Store QR Code</h2>
+              <p className="text-gray-500 mb-8 font-medium">Print this and place it on your tables or counter. Customers can scan it to order directly from their phones!</p>
+              
+              <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 inline-block mb-6 shadow-inner">
+                <img src={qrCodeUrl} alt="Store QR Code" className="w-64 h-64 mx-auto rounded-lg" />
               </div>
-
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">Business Logo</label>
-                {merchant.logo_url && <img src={merchant.logo_url} alt="Logo preview" className="w-16 h-16 rounded-full object-cover border mb-2 shadow-sm" />}
-                <input type="file" accept="image/*" onChange={e => setLogoFile(e.target.files[0])} className="w-full border p-2 rounded text-sm bg-gray-50" />
+              
+              <div className="flex gap-4 justify-center">
+                <a href={qrCodeUrl} download="Store_QRCode.png" target="_blank" rel="noreferrer" className="bg-black text-white px-6 py-3 rounded-xl font-bold shadow-md hover:bg-gray-800 transition-colors flex items-center gap-2">
+                  ⬇️ Download QR
+                </a>
+                <a href={storeUrl} target="_blank" rel="noreferrer" className="bg-white text-gray-700 border border-gray-300 px-6 py-3 rounded-xl font-bold shadow-sm hover:bg-gray-50 transition-colors">
+                  Visit Store
+                </a>
               </div>
+            </div>
+          )}
 
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">About Us Description</label>
-                <textarea rows="3" className="w-full border p-2 rounded" placeholder="Tell your customers what your business is about..." value={merchant.about_text || ''} onChange={e => setMerchant({...merchant, about_text: e.target.value})}></textarea>
-              </div>
+          {/* CATALOG TAB (Read-only summary for now) */}
+          {activeTab === 'catalog' && (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+               <h2 className="text-xl font-bold text-gray-800 mb-6">Your Active Products</h2>
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                 {products.map(p => (
+                   <div key={p.id} className="flex gap-4 p-4 border border-gray-100 rounded-xl bg-gray-50">
+                     {p.image_url ? <img src={p.image_url} alt={p.name} className="w-16 h-16 object-cover rounded-lg shadow-sm" /> : <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center text-xs font-bold text-gray-500">No Img</div>}
+                     <div>
+                       <h4 className="font-bold text-gray-900">{p.name}</h4>
+                       <p className="text-green-700 font-bold text-sm mb-1">₦{Number(p.price).toLocaleString()}</p>
+                       <span className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded font-bold">{p.category}</span>
+                     </div>
+                   </div>
+                 ))}
+                 {products.length === 0 && <p className="text-gray-500 font-medium">No products loaded yet.</p>}
+               </div>
+            </div>
+          )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Contact Phone</label>
-                  <input className="w-full border p-2 rounded" placeholder="08012345678" value={merchant.contact_phone || ''} onChange={e => setMerchant({...merchant, contact_phone: e.target.value})} />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Contact Email</label>
-                  <input className="w-full border p-2 rounded" placeholder="business@email.com" value={merchant.contact_email || ''} onChange={e => setMerchant({...merchant, contact_email: e.target.value})} />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Location / Address</label>
-                  <input className="w-full border p-2 rounded" placeholder="Lagos, Nigeria" value={merchant.location || ''} onChange={e => setMerchant({...merchant, location: e.target.value})} />
-                </div>
-              </div>
-
-              <hr className="my-6 border-gray-100" />
-              <h3 className="text-lg font-bold text-gray-800 mb-2">Social Media Links</h3>
-              <p className="text-xs text-gray-500 mb-4">Leave empty any social network you don't use. It will automatically hide on your store.</p>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div><label className="block text-sm font-bold text-gray-700 mb-1">Facebook URL</label><input className="w-full border p-2 rounded text-sm" placeholder="https://facebook.com/..." value={merchant.facebook_url || ''} onChange={e => setMerchant({...merchant, facebook_url: e.target.value})} /></div>
-                <div><label className="block text-sm font-bold text-gray-700 mb-1">Instagram URL</label><input className="w-full border p-2 rounded text-sm" placeholder="https://instagram.com/..." value={merchant.instagram_url || ''} onChange={e => setMerchant({...merchant, instagram_url: e.target.value})} /></div>
-                <div><label className="block text-sm font-bold text-gray-700 mb-1">TikTok URL</label><input className="w-full border p-2 rounded text-sm" placeholder="https://tiktok.com/..." value={merchant.tiktok_url || ''} onChange={e => setMerchant({...merchant, tiktok_url: e.target.value})} /></div>
-                <div><label className="block text-sm font-bold text-gray-700 mb-1">YouTube URL</label><input className="w-full border p-2 rounded text-sm" placeholder="https://youtube.com/..." value={merchant.youtube_url || ''} onChange={e => setMerchant({...merchant, youtube_url: e.target.value})} /></div>
-                <div><label className="block text-sm font-bold text-gray-700 mb-1">X (Twitter) URL</label><input className="w-full border p-2 rounded text-sm" placeholder="https://x.com/..." value={merchant.x_url || ''} onChange={e => setMerchant({...merchant, x_url: e.target.value})} /></div>
-                <div><label className="block text-sm font-bold text-gray-700 mb-1">LinkedIn URL</label><input className="w-full border p-2 rounded text-sm" placeholder="https://linkedin.com/..." value={merchant.linkedin_url || ''} onChange={e => setMerchant({...merchant, linkedin_url: e.target.value})} /></div>
-              </div>
-
-              <button type="submit" disabled={isUploading} className="w-full bg-black text-white py-3 rounded-lg font-bold mt-6 hover:bg-gray-800 transition-colors disabled:bg-gray-400">
-                {isUploading ? 'Saving Profile...' : 'Save All Profile Changes'}
-              </button>
-            </form>
-          </div>
-        )}
-
-      </main>
+        </div>
+      </div>
     </div>
   )
 }
