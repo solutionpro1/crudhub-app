@@ -73,7 +73,6 @@ export default function Admin() {
 
   async function handleCreateMerchant(e) {
     e.preventDefault()
-    // New merchants get a 14 day trial by default
     const trialEndDate = new Date()
     trialEndDate.setDate(trialEndDate.getDate() + 14)
     
@@ -107,9 +106,8 @@ export default function Admin() {
       
     if (window.confirm(confirmMessage)) {
       const { error } = await supabase.from('merchants').update({ status: newStatus }).eq('id', merchant.id)
-      if (error) {
-        alert('Error updating status: ' + error.message)
-      } else {
+      if (error) alert('Error updating status: ' + error.message)
+      else {
         fetchMerchants()
         if (selectedMerchant && selectedMerchant.id === merchant.id) {
           setSelectedMerchant({...selectedMerchant, status: newStatus})
@@ -118,30 +116,24 @@ export default function Admin() {
     }
   }
 
-  // --- SUBSCRIPTION RENEWAL LOGIC ---
   async function handleRenewSubscription(planType) {
     const daysToAdd = planType === 'monthly' ? 30 : 365;
-    
-    // If they are already expired, start from today. If they still have time, add to their existing time.
     const currentEnd = selectedMerchant.subscription_end_date ? new Date(selectedMerchant.subscription_end_date) : new Date();
     const baseDate = currentEnd > new Date() ? currentEnd : new Date();
-    
     const newEndDate = new Date(baseDate.setDate(baseDate.getDate() + daysToAdd)).toISOString();
 
     if (window.confirm(`Confirm renewal of ${selectedMerchant.business_name} for 1 ${planType === 'monthly' ? 'Month' : 'Year'}?`)) {
       const { error } = await supabase.from('merchants').update({ 
         subscription_plan: planType,
         subscription_end_date: newEndDate,
-        status: 'active' // Auto-reactivate if they were suspended
+        status: 'active'
       }).eq('id', selectedMerchant.id)
       
       if (!error) {
         alert('Subscription extended successfully!')
         fetchMerchants()
         setSelectedMerchant({...selectedMerchant, subscription_plan: planType, subscription_end_date: newEndDate, status: 'active'})
-      } else {
-        alert('Error: ' + error.message)
-      }
+      } else alert('Error: ' + error.message)
     }
   }
 
@@ -154,17 +146,23 @@ export default function Admin() {
       if (uploadedUrl) logo_url = uploadedUrl
     }
     const { error } = await supabase.from('merchants').update({ 
-      theme_color: selectedMerchant.theme_color, logo_url: logo_url, pin_code: selectedMerchant.pin_code,
-      facebook_url: selectedMerchant.facebook_url, instagram_url: selectedMerchant.instagram_url,
-      tiktok_url: selectedMerchant.tiktok_url, x_url: selectedMerchant.x_url
+      business_name: selectedMerchant.business_name,
+      phone_number: selectedMerchant.phone_number,
+      theme_color: selectedMerchant.theme_color, 
+      logo_url: logo_url, 
+      pin_code: selectedMerchant.pin_code,
+      facebook_url: selectedMerchant.facebook_url, 
+      instagram_url: selectedMerchant.instagram_url,
+      tiktok_url: selectedMerchant.tiktok_url, 
+      x_url: selectedMerchant.x_url
     }).eq('id', selectedMerchant.id)
     
     if (!error) {
-      alert('Brand & Social settings updated!')
+      alert('Merchant details & settings updated!')
       setSelectedMerchant({...selectedMerchant, logo_url})
       setLogoFile(null)
       fetchMerchants()
-    } else { alert('Error: ' + error.message) }
+    } else alert('Error: ' + error.message)
     setIsUploading(false)
   }
 
@@ -180,7 +178,7 @@ export default function Admin() {
       setNewProduct({ name: '', description: '', price: '', category: '' })
       setProductImageFile(null)
       document.getElementById('product-image').value = '';
-    } else { alert('Error: ' + error.message) }
+    } else alert('Error: ' + error.message)
     setIsUploading(false)
   }
 
@@ -190,14 +188,12 @@ export default function Admin() {
     fetchPlatformStats()
   }
 
-  // Helper to calculate days remaining
   function getDaysRemaining(endDateString) {
     if (!endDateString) return 0;
     const end = new Date(endDateString);
     const today = new Date();
     const diffTime = end - today;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   }
 
   if (authLoading) return <div className="min-h-screen flex items-center justify-center bg-gray-50 text-xl font-bold">Checking access...</div>
@@ -235,15 +231,11 @@ export default function Admin() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex items-center justify-between">
                 <div><p className="text-sm text-gray-500 font-bold uppercase tracking-wider mb-1">Total Stores</p><h3 className="text-4xl font-black text-gray-900">{merchants.length}</h3></div>
-                <div className="text-gray-300">
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-                </div>
+                <div className="text-gray-300"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>
               </div>
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex items-center justify-between">
                 <div><p className="text-sm text-gray-500 font-bold uppercase tracking-wider mb-1">Platform Products</p><h3 className="text-4xl font-black text-gray-900">{allProductsCount}</h3></div>
-                <div className="text-gray-300">
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-                </div>
+                <div className="text-gray-300"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div>
               </div>
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex items-center justify-center">
                  <button onClick={() => setActiveView('add')} className="bg-black text-white px-6 py-4 rounded-xl font-bold w-full hover:bg-gray-800 transition-transform active:scale-95 shadow-md flex items-center justify-center gap-2 text-lg">
@@ -328,60 +320,36 @@ export default function Admin() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="space-y-6">
               
-              {/* NEW: SUBSCRIPTION MANAGEMENT */}
               <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
                 <h2 className="text-xl font-bold text-gray-800 mb-4">Subscription</h2>
-                
                 <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 mb-6">
-                  <div className="flex justify-between items-end mb-2">
-                    <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Plan</span>
-                    <span className="font-black text-gray-900 capitalize">{selectedMerchant.subscription_plan}</span>
-                  </div>
-                  <div className="flex justify-between items-end mb-2">
-                    <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Expires</span>
-                    <span className="font-bold text-gray-900">{selectedMerchant.subscription_end_date ? new Date(selectedMerchant.subscription_end_date).toLocaleDateString() : 'N/A'}</span>
-                  </div>
-                  <div className="flex justify-between items-end pt-2 border-t border-gray-200">
-                    <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Time Left</span>
-                    <span className={`font-bold px-2 py-0.5 rounded text-sm ${getDaysRemaining(selectedMerchant.subscription_end_date) <= 3 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                      {getDaysRemaining(selectedMerchant.subscription_end_date)} Days
-                    </span>
-                  </div>
+                  <div className="flex justify-between items-end mb-2"><span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Plan</span><span className="font-black text-gray-900 capitalize">{selectedMerchant.subscription_plan}</span></div>
+                  <div className="flex justify-between items-end mb-2"><span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Expires</span><span className="font-bold text-gray-900">{selectedMerchant.subscription_end_date ? new Date(selectedMerchant.subscription_end_date).toLocaleDateString() : 'N/A'}</span></div>
+                  <div className="flex justify-between items-end pt-2 border-t border-gray-200"><span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Time Left</span><span className={`font-bold px-2 py-0.5 rounded text-sm ${getDaysRemaining(selectedMerchant.subscription_end_date) <= 3 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>{getDaysRemaining(selectedMerchant.subscription_end_date)} Days</span></div>
                 </div>
-
                 <div className="space-y-3">
-                  <button onClick={() => handleRenewSubscription('monthly')} className="w-full bg-black text-white py-3 rounded-lg font-bold hover:bg-gray-800 transition-colors shadow-sm flex justify-between px-4">
-                    <span>Renew Monthly</span>
-                    <span className="text-gray-300">₦1,400</span>
-                  </button>
-                  <button onClick={() => handleRenewSubscription('yearly')} className="w-full bg-white text-gray-900 border-2 border-gray-200 py-3 rounded-lg font-bold hover:bg-gray-50 transition-colors shadow-sm flex justify-between px-4">
-                    <span>Renew Yearly</span>
-                    <span className="text-gray-500">₦13,440</span>
-                  </button>
+                  <button onClick={() => handleRenewSubscription('monthly')} className="w-full bg-black text-white py-3 rounded-lg font-bold hover:bg-gray-800 transition-colors shadow-sm flex justify-between px-4"><span>Renew Monthly</span><span className="text-gray-300">₦1,400</span></button>
+                  <button onClick={() => handleRenewSubscription('yearly')} className="w-full bg-white text-gray-900 border-2 border-gray-200 py-3 rounded-lg font-bold hover:bg-gray-50 transition-colors shadow-sm flex justify-between px-4"><span>Renew Yearly</span><span className="text-gray-500">₦13,440</span></button>
                 </div>
               </div>
 
-              {/* PLATFORM STATUS (KILL SWITCH) */}
               <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
                 <h2 className="text-xl font-bold text-gray-800 mb-2">Platform Status</h2>
                 <p className="text-sm text-gray-500 mb-4">Toggle storefront access for this client.</p>
                 <div className={`p-4 rounded-xl border flex items-center justify-between ${selectedMerchant.status === 'suspended' ? 'bg-red-50 border-red-100' : 'bg-green-50 border-green-100'}`}>
-                  <span className={`font-bold ${selectedMerchant.status === 'suspended' ? 'text-red-800' : 'text-green-800'}`}>
-                    {selectedMerchant.status === 'suspended' ? 'Store is Offline' : 'Store is Active'}
-                  </span>
-                  <button 
-                    onClick={() => handleToggleStatus(selectedMerchant)}
-                    className={`px-4 py-2 rounded-lg text-sm font-bold text-white shadow-sm transition-transform active:scale-95 ${selectedMerchant.status === 'suspended' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}
-                  >
-                    {selectedMerchant.status === 'suspended' ? 'Reactivate' : 'Suspend Store'}
-                  </button>
+                  <span className={`font-bold ${selectedMerchant.status === 'suspended' ? 'text-red-800' : 'text-green-800'}`}>{selectedMerchant.status === 'suspended' ? 'Store is Offline' : 'Store is Active'}</span>
+                  <button onClick={() => handleToggleStatus(selectedMerchant)} className={`px-4 py-2 rounded-lg text-sm font-bold text-white shadow-sm transition-transform active:scale-95 ${selectedMerchant.status === 'suspended' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}>{selectedMerchant.status === 'suspended' ? 'Reactivate' : 'Suspend Store'}</button>
                 </div>
               </div>
 
               <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
-                <h2 className="text-xl font-bold text-gray-800 mb-4">Brand & Settings</h2>
+                <h2 className="text-xl font-bold text-gray-800 mb-4">Core Details & Brand</h2>
                 <form onSubmit={handleUpdateBrand} className="space-y-4">
-                  <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Theme Color</label><input type="color" value={selectedMerchant.theme_color || '#000000'} onChange={e => setSelectedMerchant({...selectedMerchant, theme_color: e.target.value})} className="w-full h-12 rounded cursor-pointer border p-1" /></div>
+                  {/* NEW CORE FIELDS FOR SUPER ADMIN */}
+                  <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Business Name</label><input required className="w-full border p-2.5 rounded-lg bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-black" value={selectedMerchant.business_name || ''} onChange={e => setSelectedMerchant({...selectedMerchant, business_name: e.target.value})} /></div>
+                  <div><label className="block text-sm font-bold mb-1.5 text-gray-700">WhatsApp Number</label><input required type="tel" className="w-full border p-2.5 rounded-lg bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-black" value={selectedMerchant.phone_number || ''} onChange={e => setSelectedMerchant({...selectedMerchant, phone_number: e.target.value})} /></div>
+                  
+                  <div className="pt-4 border-t border-gray-100"><label className="block text-sm font-bold mb-1.5 text-gray-700">Theme Color</label><input type="color" value={selectedMerchant.theme_color || '#000000'} onChange={e => setSelectedMerchant({...selectedMerchant, theme_color: e.target.value})} className="w-full h-12 rounded cursor-pointer border p-1" /></div>
                   <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Manager PIN</label><input required maxLength="4" className="w-full border p-2.5 rounded-lg bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-black" value={selectedMerchant.pin_code || ''} onChange={e => setSelectedMerchant({...selectedMerchant, pin_code: e.target.value})} /></div>
                   <div>
                     <label className="block text-sm font-bold mb-1.5 text-gray-700">Business Logo</label>
