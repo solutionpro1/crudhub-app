@@ -6,6 +6,9 @@ export default function LandingPage() {
   const [isLoginOpen, setIsLoginOpen] = useState(false)
   const [isSignupOpen, setIsSignupOpen] = useState(false)
   
+  const [isTermsOpen, setIsTermsOpen] = useState(false)
+  const [isPrivacyOpen, setIsPrivacyOpen] = useState(false)
+
   const [storeSlug, setStoreSlug] = useState('')
   const navigate = useNavigate()
 
@@ -146,9 +149,9 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="mt-8 flex justify-center gap-4 text-gray-500 text-sm font-medium">
-             <a href="/terms" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">Terms & Conditions</a>
+             <button type="button" onClick={() => setIsTermsOpen(true)} className="hover:text-white transition-colors cursor-pointer">Terms & Conditions</button>
              <span>|</span>
-             <a href="/privacy" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">Privacy Policy</a>
+             <button type="button" onClick={() => setIsPrivacyOpen(true)} className="hover:text-white transition-colors cursor-pointer">Privacy Policy</button>
           </div>
           <p className="text-gray-600 text-xs font-medium mt-4">© {new Date().getFullYear()} Crudhub. Powered by SolutionPRO Technologies. All rights reserved.</p>
         </div>
@@ -178,7 +181,7 @@ export default function LandingPage() {
       {isSignupOpen && (
         <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md relative animate-slide-in">
-            <button type="button" onClick={() => setIsSignupOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2 bg-gray-50 rounded-full w-8 h-8 flex items-center justify-center font-bold">
+            <button type="button" onClick={() => setIsSignupOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2 bg-gray-50 rounded-full w-8 h-8 flex items-center justify-center font-bold cursor-pointer">
               ✕
             </button>
             <h2 className="text-2xl font-bold mb-2">Create Your Store</h2>
@@ -213,9 +216,15 @@ export default function LandingPage() {
                   className="mt-1 w-4 h-4 text-black focus:ring-black rounded border-gray-300"
                 />
                 <div className="text-sm text-gray-600 font-medium leading-tight">
-                  <span>I agree to the </span>
-                  <a href="/terms" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline font-bold">Terms & Conditions</a>
-                  <span> and confirm my business operates legally.</span>
+                  <label htmlFor="terms">I agree to the </label>
+                  <button 
+                    type="button" 
+                    onClick={(e) => { e.preventDefault(); setIsTermsOpen(true); }} 
+                    className="text-blue-600 hover:underline font-bold"
+                  >
+                    Terms & Conditions
+                  </button>
+                  <label htmlFor="terms"> and confirm my business operates legally.</label>
                 </div>
               </div>
 
@@ -227,7 +236,136 @@ export default function LandingPage() {
           </div>
         </div>
       )}
-      <style dangerouslySetInnerHTML={{__html: `@keyframes slide-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } } .animate-slide-in { animation: slide-in 0.2s ease-out forwards; } html { scroll-behavior: smooth; }`}} />
+
+      {/* EXPANDED TERMS MODAL */}
+      {isTermsOpen && (
+        <div className="fixed inset-0 bg-black/70 z-[200] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 w-full max-w-3xl max-h-[85vh] overflow-y-auto relative animate-slide-in">
+            <button onClick={() => setIsTermsOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2 bg-gray-50 rounded-full w-8 h-8 flex items-center justify-center font-bold cursor-pointer sticky-close">
+              ✕
+            </button>
+            <h2 className="text-3xl font-black mb-2 text-gray-900">Terms and Conditions</h2>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-6 pb-4 border-b border-gray-100">Last Updated: August 2026</p>
+            
+            <div className="space-y-6 text-sm text-gray-700 leading-relaxed">
+              <div>
+                <h3 className="font-bold text-gray-900 text-base mb-2">1. Introduction and Agreement</h3>
+                <p>Welcome to Crudhub, a software-as-a-service (SaaS) platform operated and maintained by SolutionPRO Technologies. By checking the agreement box and launching a store, you (the "Merchant") enter into a binding agreement with SolutionPRO Technologies. If you do not agree to these terms, you may not use our services.</p>
+              </div>
+              
+              <div>
+                <h3 className="font-bold text-gray-900 text-base mb-2">2. Software Provider Status</h3>
+                <p>Crudhub is strictly a digital infrastructure provider. We supply the software that allows you to display a digital catalog and route customer orders directly to your WhatsApp number. We do not process payments, hold funds, manage logistics, deliver physical goods, or offer quality control. Every transaction is an independent contract between you and your end-consumer.</p>
+              </div>
+
+              <div>
+                <h3 className="font-bold text-gray-900 text-base mb-2">3. Account Registration & Security</h3>
+                <p>To use Crudhub, you must register a valid WhatsApp number and create a secure 4-digit PIN. You are entirely responsible for maintaining the confidentiality of this PIN and for any activity that occurs under your account. SolutionPRO Technologies will not be liable for any loss or damage arising from your failure to protect your login credentials.</p>
+              </div>
+
+              <div>
+                <h3 className="font-bold text-gray-900 text-base mb-2">4. Subscriptions, Billing, and Suspension</h3>
+                <p>All newly registered merchants are granted a fourteen (14) day free trial. Following the trial period, continued access to both the merchant dashboard and the public-facing storefront requires an active, paid subscription.</p>
+                <ul className="list-disc pl-5 mt-2 space-y-1">
+                  <li><strong>Pricing:</strong> ₦1,400 per month, or ₦13,440 per year.</li>
+                  <li><strong>The "Kill Switch":</strong> If a subscription expires and is not renewed, SolutionPRO Technologies reserves the right to immediately suspend the merchant's public storefront. The storefront will display an "Offline" notice until payment is cleared.</li>
+                  <li>All subscription payments are non-refundable.</li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="font-bold text-gray-900 text-base mb-2">5. Acceptable Use Policy (Prohibited Usage)</h3>
+                <p>You agree not to use the Crudhub platform to:</p>
+                <ul className="list-disc pl-5 mt-2 space-y-1">
+                  <li>Sell, advertise, or distribute illegal drugs, contraband, or unlicensed pharmaceuticals.</li>
+                  <li>Distribute counterfeit goods or violate intellectual property rights.</li>
+                  <li>Engage in fraudulent activities or deceive end-consumers.</li>
+                  <li>Spam or abuse the WhatsApp API integration.</li>
+                </ul>
+                <p className="mt-2">Violation of this policy will result in the immediate and permanent deletion of your account and data, without prior notice or refund.</p>
+              </div>
+
+              <div>
+                <h3 className="font-bold text-gray-900 text-base mb-2">6. Limitation of Liability</h3>
+                <p>To the maximum extent permitted by law, SolutionPRO Technologies shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including loss of profits, data, or goodwill, resulting from (a) your access to or use of the platform; (b) any conduct or content of any third party on the platform; (c) any downtime, server failures, or WhatsApp API outages.</p>
+              </div>
+
+              <div>
+                <h3 className="font-bold text-gray-900 text-base mb-2">7. Governing Law</h3>
+                <p>These Terms shall be governed by and construed in accordance with the laws of the Federal Republic of Nigeria, specifically within the jurisdiction of Ogun State, without regard to its conflict of law provisions.</p>
+              </div>
+
+              <div>
+                <h3 className="font-bold text-gray-900 text-base mb-2">8. Contact Information</h3>
+                <p>For legal inquiries, support, or billing questions, please contact SolutionPRO Technologies at:</p>
+                <div className="mt-2 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <p><strong>Address:</strong> 33A Olorunsogo Street, Sote, Ibafo, Ogun State, Nigeria</p>
+                  <p><strong>Phone:</strong> +234 902 811 6376</p>
+                  <p><strong>Email:</strong> realsolutionpro@outlook.com</p>
+                </div>
+              </div>
+            </div>
+            <div className="mt-8 pt-6 border-t border-gray-100">
+              <button onClick={() => setIsTermsOpen(false)} className="w-full bg-black text-white font-bold py-4 rounded-xl hover:bg-gray-800 transition-colors shadow-md">I Have Read & Understand</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* EXPANDED PRIVACY MODAL */}
+      {isPrivacyOpen && (
+        <div className="fixed inset-0 bg-black/70 z-[200] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 w-full max-w-3xl max-h-[85vh] overflow-y-auto relative animate-slide-in">
+            <button onClick={() => setIsPrivacyOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2 bg-gray-50 rounded-full w-8 h-8 flex items-center justify-center font-bold cursor-pointer sticky-close">
+              ✕
+            </button>
+            <h2 className="text-3xl font-black mb-2 text-gray-900">Privacy Policy</h2>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-6 pb-4 border-b border-gray-100">Last Updated: August 2026</p>
+            
+            <div className="space-y-6 text-sm text-gray-700 leading-relaxed">
+              <div>
+                <h3 className="font-bold text-gray-900 text-base mb-2">1. Information We Collect</h3>
+                <p>When you register for Crudhub as a Merchant, SolutionPRO Technologies collects essential business data. This includes your business name, a valid WhatsApp phone number, your digital catalog data (product names, descriptions, pricing, and images), and a secure 4-digit PIN generated by you for authentication purposes.</p>
+              </div>
+
+              <div>
+                <h3 className="font-bold text-gray-900 text-base mb-2">2. How We Use Your Data</h3>
+                <p>The data we collect is utilized strictly to provide and improve the Crudhub platform. Specifically, we use your data to:</p>
+                <ul className="list-disc pl-5 mt-2 space-y-1">
+                  <li>Generate and host your public-facing digital storefront.</li>
+                  <li>Authenticate your login sessions to the Merchant Portal.</li>
+                  <li>Format and route incoming customer orders directly to your provided WhatsApp number.</li>
+                  <li>Send automated system notifications, such as subscription expiration warnings.</li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="font-bold text-gray-900 text-base mb-2">3. End-Consumer Data Processing</h3>
+                <p>When a customer places an order on your storefront, they input their name, delivery address, and order notes. <strong>Crudhub acts only as a Data Processor</strong> in this exchange; you (the Merchant) are the Data Controller. Crudhub temporarily processes this customer information solely to compile the WhatsApp message payload. We do not store end-consumer data for marketing, analytics, or resale.</p>
+              </div>
+
+              <div>
+                <h3 className="font-bold text-gray-900 text-base mb-2">4. Data Security & NDPR Compliance</h3>
+                <p>SolutionPRO Technologies is committed to adhering to standard data protection regulations, including the Nigeria Data Protection Regulation (NDPR). Our backend infrastructure (powered by Supabase) utilizes secure, encrypted cloud environments to protect your information against unauthorized access, alteration, disclosure, or destruction.</p>
+              </div>
+
+              <div>
+                <h3 className="font-bold text-gray-900 text-base mb-2">5. Data Sharing and Third Parties</h3>
+                <p><strong>We will never sell, rent, or trade your personal or business data to third parties.</strong> Data is only shared with our necessary cloud infrastructure providers (e.g., hosting servers and databases) required to keep the platform online.</p>
+              </div>
+
+              <div>
+                <h3 className="font-bold text-gray-900 text-base mb-2">6. Your Rights to Data Deletion</h3>
+                <p>You maintain full ownership of your catalog data. You have the right to request the complete modification or deletion of your account and all associated data from our servers. To initiate a permanent data deletion request, please contact our support team at <strong>realsolutionpro@outlook.com</strong>.</p>
+              </div>
+            </div>
+            <div className="mt-8 pt-6 border-t border-gray-100">
+              <button onClick={() => setIsPrivacyOpen(false)} className="w-full bg-black text-white font-bold py-4 rounded-xl hover:bg-gray-800 transition-colors shadow-md">I Have Read & Understand</button>
+            </div>
+          </div>
+        </div>
+      )}
+      <style dangerouslySetInnerHTML={{__html: `@keyframes slide-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } } .animate-slide-in { animation: slide-in 0.2s ease-out forwards; } html { scroll-behavior: smooth; } .sticky-close { position: sticky; float: right; top: 0; }`}} />
     </div>
   )
 }
