@@ -63,7 +63,6 @@ export default function Storefront() {
   if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-xl">Loading Store...</div>
   if (!merchant) return <div className="min-h-screen flex items-center justify-center font-bold text-xl text-red-600">Store Not Found</div>
 
-  // --- THE KILL SWITCH SCREEN ---
   if (merchant.status === 'suspended') {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 text-center font-sans">
@@ -102,7 +101,7 @@ export default function Storefront() {
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           </div>
-          <input type="text" placeholder="Search the menu..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl py-3.5 pl-10 pr-4 outline-none focus:ring-2 transition-shadow shadow-sm font-medium" style={{ '--tw-ring-color': themeColor }} />
+          <input type="text" placeholder="Search the catalog..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl py-3.5 pl-10 pr-4 outline-none focus:ring-2 transition-shadow shadow-sm font-medium" style={{ '--tw-ring-color': themeColor }} />
         </div>
 
         {categories.length > 2 && (
@@ -142,6 +141,14 @@ export default function Storefront() {
           </div>
         </footer>
       )}
+
+      {/* SOLUTIONPRO BRANDING BADGE */}
+      <div className="w-full text-center pb-8 pt-4">
+        <a href="/" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-400 hover:text-gray-600 transition-colors">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          Powered by SolutionPRO Technologies
+        </a>
+      </div>
 
       {cartCount > 0 && !isCheckoutOpen && (
         <div className="fixed bottom-6 left-0 right-0 px-4 z-40 flex justify-center pointer-events-none">
