@@ -151,8 +151,13 @@ export default function Admin() {
   return (
     <div className="p-4 sm:p-8 bg-gray-100 min-h-screen font-sans pb-20">
       <div className="max-w-7xl mx-auto">
+        
+        {/* UPDATED BRANDING HEADER */}
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Crudhub Super Admin</h1>
+          <div className="flex items-center gap-4">
+            <img src="/crudhub-logo.png" alt="Crudhub Logo" className="h-12 w-auto object-contain drop-shadow-sm" />
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Crudhub Super Admin</h1>
+          </div>
           <div className="flex gap-4">
             {activeView !== 'list' && <button onClick={() => setActiveView('list')} className="bg-white border border-gray-300 px-4 py-2 rounded-lg font-bold hover:bg-gray-50 text-sm shadow-sm">&larr; Back to Dashboard</button>}
             <button onClick={handleLogout} className="bg-red-50 text-red-600 px-4 py-2 rounded-lg font-bold hover:bg-red-100 text-sm border border-red-200 shadow-sm">Logout</button>
@@ -162,7 +167,6 @@ export default function Admin() {
         {activeView === 'list' && (
           <div className="space-y-6">
             
-            {/* TOP METRICS ROW */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex items-center justify-between">
                 <div><p className="text-sm text-gray-500 font-bold uppercase tracking-wider mb-1">Total Stores</p><h3 className="text-4xl font-black text-gray-900">{merchants.length}</h3></div>
@@ -179,7 +183,6 @@ export default function Admin() {
               </div>
             </div>
 
-            {/* BIRD'S EYE DIRECTORY TABLE */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
               <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
                 <h2 className="text-xl font-bold text-gray-800">Merchant Directory</h2>
@@ -225,7 +228,6 @@ export default function Admin() {
           </div>
         )}
 
-        {/* The 'add' and 'manage' views remain exactly as you configured them earlier */}
         {activeView === 'add' && (
           <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8 border border-gray-200 max-w-2xl mx-auto">
             <h2 className="text-2xl font-bold text-gray-800 mb-6">Register a New Client</h2>
