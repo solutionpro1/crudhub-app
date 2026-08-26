@@ -90,6 +90,15 @@ export default function MerchantPortal() {
   function handleEditClick(product) { setEditingProductId(product.id); setNewProduct({ name: product.name, description: product.description || '', price: product.price, category: product.category }); window.scrollTo({ top: 0, behavior: 'smooth' }); }
   function cancelEdit() { setEditingProductId(null); setNewProduct({ name: '', description: '', price: '', category: '' }); setProductImageFile(null); const fileInput = document.getElementById('product-image'); if(fileInput) fileInput.value = ''; }
 
+  // Helper to calculate days remaining for the banner
+  function getDaysRemaining(endDateString) {
+    if (!endDateString) return 0;
+    const end = new Date(endDateString);
+    const today = new Date();
+    const diffTime = end - today;
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  }
+
   if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-xl">Loading space...</div>
   if (!merchant) return <div className="min-h-screen flex items-center justify-center font-bold text-xl text-red-600">Store not found.</div>
 
@@ -112,6 +121,11 @@ export default function MerchantPortal() {
 
   const storeUrl = `https://crudhub-app.vercel.app/${merchant.slug}`
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(storeUrl)}`
+  
+  // Notification Logic
+  const daysLeft = getDaysRemaining(merchant.subscription_end_date);
+  const showWarning = daysLeft <= 3;
+  const isExpired = daysLeft < 0;
 
   return (
     <div className="min-h-screen bg-gray-100 font-sans pb-20">
@@ -124,7 +138,29 @@ export default function MerchantPortal() {
           <button onClick={() => setIsAuthenticated(false)} className="text-gray-500 hover:text-red-600 font-bold text-sm bg-gray-50 px-4 py-2 rounded-lg border hover:bg-red-50 transition-colors">Lock Portal</button>
         </div>
       </div>
-      <div className="max-w-6xl mx-auto px-6 mt-8 grid grid-cols-1 md:grid-cols-4 gap-8">
+
+      {/* SUBSCRIPTION WARNING BANNER */}
+      {showWarning && (
+        <div className={`max-w-6xl mx-auto px-6 mt-8 mb-2`}>
+          <div className={`p-4 rounded-xl border-l-4 flex items-start gap-4 shadow-sm ${isExpired ? 'bg-red-50 border-red-500' : 'bg-orange-50 border-orange-500'}`}>
+            <div className={`mt-0.5 ${isExpired ? 'text-red-500' : 'text-orange-500'}`}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <div>
+              <h3 className={`font-bold text-lg ${isExpired ? 'text-red-800' : 'text-orange-800'}`}>
+                {isExpired ? 'Subscription Expired' : 'Subscription Expiring Soon'}
+              </h3>
+              <p className={`font-medium mt-1 ${isExpired ? 'text-red-700' : 'text-orange-700'}`}>
+                {isExpired 
+                  ? `Your Crudhub subscription has expired. Please contact support to renew immediately and avoid your storefront going offline. (Monthly: ₦1,400 | Yearly: ₦13,440)` 
+                  : `Your Crudhub subscription expires in ${daysLeft === 0 ? 'less than 24 hours' : `${daysLeft} days`}. Please renew to keep your store online. (Monthly: ₦1,400 | Yearly: ₦13,440)`}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className={`max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-8 ${showWarning ? 'mt-6' : 'mt-8'}`}>
         <div className="space-y-2">
           <button onClick={() => setActiveTab('orders')} className={`w-full text-left px-5 py-4 rounded-xl font-bold transition-colors ${activeTab === 'orders' ? 'bg-black text-white shadow-md' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'}`}><span className="flex items-center gap-2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg> Order History</span></button>
           <button onClick={() => setActiveTab('qr')} className={`w-full text-left px-5 py-4 rounded-xl font-bold transition-colors ${activeTab === 'qr' ? 'bg-black text-white shadow-md' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'}`}><span className="flex items-center gap-2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg> Store QR Code</span></button>
