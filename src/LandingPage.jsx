@@ -72,11 +72,6 @@ export default function LandingPage() {
   const salesMessage = "Hello SolutionPRO! I would like to talk to sales about setting up my Crudhub store."
   const whatsappSalesUrl = `https://wa.me/2349028116376?text=${encodeURIComponent(salesMessage)}`
 
-  // Helper function to force open legal pages
-  const openLegal = (path) => {
-    window.open(path, '_blank', 'noopener,noreferrer')
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
       <nav className="bg-white border-b border-gray-200 fixed w-full top-0 z-50">
@@ -151,9 +146,9 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="mt-8 flex justify-center gap-4 text-gray-500 text-sm font-medium">
-             <button type="button" onClick={() => openLegal('/terms')} className="hover:text-white transition-colors cursor-pointer">Terms & Conditions</button>
+             <a href="/terms" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">Terms & Conditions</a>
              <span>|</span>
-             <button type="button" onClick={() => openLegal('/privacy')} className="hover:text-white transition-colors cursor-pointer">Privacy Policy</button>
+             <a href="/privacy" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">Privacy Policy</a>
           </div>
           <p className="text-gray-600 text-xs font-medium mt-4">© {new Date().getFullYear()} Crudhub. Powered by SolutionPRO Technologies. All rights reserved.</p>
         </div>
@@ -183,7 +178,7 @@ export default function LandingPage() {
       {isSignupOpen && (
         <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md relative animate-slide-in">
-            <button type="button" onClick={() => setIsSignupOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2 bg-gray-50 rounded-full w-8 h-8 flex items-center justify-center font-bold cursor-pointer">
+            <button type="button" onClick={() => setIsSignupOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2 bg-gray-50 rounded-full w-8 h-8 flex items-center justify-center font-bold">
               ✕
             </button>
             <h2 className="text-2xl font-bold mb-2">Create Your Store</h2>
@@ -218,15 +213,9 @@ export default function LandingPage() {
                   className="mt-1 w-4 h-4 text-black focus:ring-black rounded border-gray-300"
                 />
                 <div className="text-sm text-gray-600 font-medium leading-tight">
-                  <label htmlFor="terms">I agree to the </label>
-                  <button 
-                    type="button" 
-                    onClick={(e) => { e.preventDefault(); openLegal('/terms'); }} 
-                    className="text-blue-600 hover:underline font-bold"
-                  >
-                    Terms & Conditions
-                  </button>
-                  <label htmlFor="terms"> and confirm my business operates legally.</label>
+                  <span>I agree to the </span>
+                  <a href="/terms" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline font-bold">Terms & Conditions</a>
+                  <span> and confirm my business operates legally.</span>
                 </div>
               </div>
 
