@@ -98,13 +98,9 @@ export default function Admin() {
       if (uploadedUrl) logo_url = uploadedUrl
     }
     const { error } = await supabase.from('merchants').update({ 
-      theme_color: selectedMerchant.theme_color, 
-      logo_url: logo_url, 
-      pin_code: selectedMerchant.pin_code,
-      facebook_url: selectedMerchant.facebook_url,
-      instagram_url: selectedMerchant.instagram_url,
-      tiktok_url: selectedMerchant.tiktok_url,
-      x_url: selectedMerchant.x_url
+      theme_color: selectedMerchant.theme_color, logo_url: logo_url, pin_code: selectedMerchant.pin_code,
+      facebook_url: selectedMerchant.facebook_url, instagram_url: selectedMerchant.instagram_url,
+      tiktok_url: selectedMerchant.tiktok_url, x_url: selectedMerchant.x_url
     }).eq('id', selectedMerchant.id)
     
     if (!error) {
@@ -157,7 +153,6 @@ export default function Admin() {
   return (
     <div className="p-4 sm:p-8 bg-gray-100 min-h-screen font-sans pb-20">
       <div className="max-w-7xl mx-auto">
-        
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center gap-4">
             <img src="/crudhub-logo.jpg" alt="Crudhub Logo" className="h-12 w-auto object-contain drop-shadow-sm" />
@@ -174,15 +169,20 @@ export default function Admin() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex items-center justify-between">
                 <div><p className="text-sm text-gray-500 font-bold uppercase tracking-wider mb-1">Total Stores</p><h3 className="text-4xl font-black text-gray-900">{merchants.length}</h3></div>
-                <div className="text-5xl opacity-80">🏪</div>
+                <div className="text-gray-300">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                </div>
               </div>
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex items-center justify-between">
                 <div><p className="text-sm text-gray-500 font-bold uppercase tracking-wider mb-1">Platform Products</p><h3 className="text-4xl font-black text-gray-900">{allProductsCount}</h3></div>
-                <div className="text-5xl opacity-80">📦</div>
+                <div className="text-gray-300">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                </div>
               </div>
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex items-center justify-center">
                  <button onClick={() => setActiveView('add')} className="bg-black text-white px-6 py-4 rounded-xl font-bold w-full hover:bg-gray-800 transition-transform active:scale-95 shadow-md flex items-center justify-center gap-2 text-lg">
-                    <span>+ Create New Store</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    <span>Create New Store</span>
                  </button>
               </div>
             </div>
@@ -209,11 +209,7 @@ export default function Admin() {
                           {m.logo_url ? <img src={m.logo_url} className="w-10 h-10 rounded-full object-cover border bg-white" /> : <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center font-bold text-gray-500 border border-gray-300">{m.business_name?.charAt(0)}</div>}
                           <span className="font-bold text-gray-900">{m.business_name}</span>
                         </td>
-                        <td className="p-4">
-                          <a href={`/${m.slug}`} target="_blank" rel="noreferrer" className="text-blue-600 font-semibold hover:underline flex items-center gap-1 w-fit">
-                            /{m.slug} <span className="text-xs opacity-50">↗</span>
-                          </a>
-                        </td>
+                        <td className="p-4"><a href={`/${m.slug}`} target="_blank" rel="noreferrer" className="text-blue-600 font-semibold hover:underline flex items-center gap-1 w-fit">/{m.slug} <span className="text-xs opacity-50">↗</span></a></td>
                         <td className="p-4 text-gray-700 font-medium">{m.phone_number || <span className="text-red-400 italic text-sm">Missing</span>}</td>
                         <td className="p-4"><span className="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-md font-mono text-sm border font-bold shadow-sm">{m.pin_code}</span></td>
                         <td className="p-4 text-right">
@@ -248,26 +244,16 @@ export default function Admin() {
 
         {activeView === 'manage' && selectedMerchant && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            
-            {/* BRAND & SOCIAL SETTINGS */}
             <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200 h-fit">
               <h2 className="text-xl font-bold text-gray-800 mb-4">Brand & Socials</h2>
               <form onSubmit={handleUpdateBrand} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-bold mb-1.5 text-gray-700">Theme Color</label>
-                  <input type="color" value={selectedMerchant.theme_color || '#000000'} onChange={e => setSelectedMerchant({...selectedMerchant, theme_color: e.target.value})} className="w-full h-12 rounded cursor-pointer border p-1" />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold mb-1.5 text-gray-700">Manager PIN</label>
-                  <input required maxLength="4" className="w-full border p-2.5 rounded-lg bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-black" value={selectedMerchant.pin_code || ''} onChange={e => setSelectedMerchant({...selectedMerchant, pin_code: e.target.value})} />
-                </div>
+                <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Theme Color</label><input type="color" value={selectedMerchant.theme_color || '#000000'} onChange={e => setSelectedMerchant({...selectedMerchant, theme_color: e.target.value})} className="w-full h-12 rounded cursor-pointer border p-1" /></div>
+                <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Manager PIN</label><input required maxLength="4" className="w-full border p-2.5 rounded-lg bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-black" value={selectedMerchant.pin_code || ''} onChange={e => setSelectedMerchant({...selectedMerchant, pin_code: e.target.value})} /></div>
                 <div>
                   <label className="block text-sm font-bold mb-1.5 text-gray-700">Business Logo</label>
                   {selectedMerchant.logo_url && <img src={selectedMerchant.logo_url} alt="Logo" className="h-16 mb-2 rounded-lg border object-contain bg-gray-50 p-1" />}
                   <input type="file" accept="image/*" onChange={e => setLogoFile(e.target.files[0])} className="w-full border p-2 rounded-lg text-sm bg-gray-50" />
                 </div>
-                
-                {/* NEW SOCIAL MEDIA FIELDS */}
                 <div className="pt-4 border-t border-gray-100">
                   <h3 className="font-bold text-gray-700 mb-3 text-sm">Social Links (Optional)</h3>
                   <div className="space-y-3">
@@ -277,14 +263,12 @@ export default function Admin() {
                     <input placeholder="X (Twitter) URL" className="w-full border p-2 rounded-lg text-sm bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-black" value={selectedMerchant.x_url || ''} onChange={e => setSelectedMerchant({...selectedMerchant, x_url: e.target.value})} />
                   </div>
                 </div>
-
                 <button type="submit" disabled={isUploading} className="bg-black text-white px-4 py-3 mt-4 rounded-xl font-bold w-full disabled:bg-gray-400 hover:bg-gray-800 transition-colors">
                   {isUploading ? 'Saving...' : 'Save Settings'}
                 </button>
               </form>
             </div>
 
-            {/* CATALOG (Unchanged) */}
             <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
               <h2 className="text-xl font-bold text-gray-800 mb-4">Manage Catalog</h2>
               <form onSubmit={handleAddProduct} className="flex flex-col gap-3 mb-6 bg-gray-50 p-5 rounded-xl border border-gray-100">
@@ -295,8 +279,8 @@ export default function Admin() {
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3 items-center">
                   <input id="product-image" type="file" accept="image/*" onChange={e => setProductImageFile(e.target.files[0])} className="border p-2 rounded-lg flex-1 text-sm bg-white w-full" />
-                  <button type="submit" disabled={isUploading} className="bg-green-600 text-white px-6 py-2.5 rounded-lg font-bold disabled:bg-gray-400 hover:bg-green-700 transition-colors w-full sm:w-auto whitespace-nowrap">
-                    {isUploading ? 'Adding...' : '+ Add Item'}
+                  <button type="submit" disabled={isUploading} className="bg-green-600 text-white px-6 py-2.5 rounded-lg font-bold disabled:bg-gray-400 hover:bg-green-700 transition-colors w-full sm:w-auto whitespace-nowrap flex items-center justify-center gap-2">
+                    {isUploading ? 'Adding...' : <><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Item</>}
                   </button>
                 </div>
               </form>
