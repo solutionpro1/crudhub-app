@@ -149,9 +149,9 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="mt-8 flex justify-center gap-4 text-gray-500 text-sm font-medium">
-             <button onClick={() => setIsTermsOpen(true)} className="hover:text-white transition-colors">Terms & Conditions</button>
+             <span onClick={() => setIsTermsOpen(true)} className="hover:text-white transition-colors cursor-pointer">Terms & Conditions</span>
              <span>|</span>
-             <button onClick={() => setIsPrivacyOpen(true)} className="hover:text-white transition-colors">Privacy Policy</button>
+             <span onClick={() => setIsPrivacyOpen(true)} className="hover:text-white transition-colors cursor-pointer">Privacy Policy</span>
           </div>
           <p className="text-gray-600 text-xs font-medium mt-4">© {new Date().getFullYear()} Crudhub. Powered by SolutionPRO Technologies. All rights reserved.</p>
         </div>
@@ -160,9 +160,9 @@ export default function LandingPage() {
       {isLoginOpen && (
         <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm relative animate-slide-in">
-            <button onClick={() => setIsLoginOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2 bg-gray-50 rounded-full w-8 h-8 flex items-center justify-center font-bold">
+            <span onClick={() => setIsLoginOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2 bg-gray-50 rounded-full w-8 h-8 flex items-center justify-center font-bold cursor-pointer">
               ✕
-            </button>
+            </span>
             <h2 className="text-2xl font-bold mb-2">Merchant Login</h2>
             <p className="text-gray-500 text-sm font-medium mb-6">Enter your store's URL name to access your dashboard.</p>
             <form onSubmit={handleLogin} className="space-y-4">
@@ -181,9 +181,9 @@ export default function LandingPage() {
       {isSignupOpen && (
         <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md relative animate-slide-in">
-            <button onClick={() => setIsSignupOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2 bg-gray-50 rounded-full w-8 h-8 flex items-center justify-center font-bold">
+            <span onClick={() => setIsSignupOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2 bg-gray-50 rounded-full w-8 h-8 flex items-center justify-center font-bold cursor-pointer">
               ✕
-            </button>
+            </span>
             <h2 className="text-2xl font-bold mb-2">Create Your Store</h2>
             <p className="text-gray-500 text-sm font-medium mb-6">Start your 14-day free trial immediately. No credit card required.</p>
             <form onSubmit={handleSignup} className="space-y-4">
@@ -217,13 +217,12 @@ export default function LandingPage() {
                 />
                 <div className="text-sm text-gray-600 font-medium leading-tight">
                   <label htmlFor="terms">I agree to the </label>
-                  <button 
-                    type="button" 
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsTermsOpen(true); }} 
-                    className="text-blue-600 hover:underline font-bold"
+                  <span 
+                    onClick={() => setIsTermsOpen(true)} 
+                    className="text-blue-600 hover:underline font-bold cursor-pointer"
                   >
                     Terms & Conditions
-                  </button>
+                  </span>
                   <label htmlFor="terms"> and confirm my business operates legally.</label>
                 </div>
               </div>
@@ -241,9 +240,9 @@ export default function LandingPage() {
       {isTermsOpen && (
         <div className="fixed inset-0 bg-black/70 z-[200] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-2xl max-h-[85vh] overflow-y-auto relative animate-slide-in">
-            <button onClick={() => setIsTermsOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2 bg-gray-50 rounded-full w-8 h-8 flex items-center justify-center font-bold">
+            <span onClick={() => setIsTermsOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2 bg-gray-50 rounded-full w-8 h-8 flex items-center justify-center font-bold cursor-pointer">
               ✕
-            </button>
+            </span>
             <h2 className="text-2xl font-black mb-4">Terms and Conditions</h2>
             <div className="space-y-4 text-sm text-gray-600 leading-relaxed">
               <p><strong>1. Introduction:</strong> Welcome to Crudhub, powered by SolutionPRO Technologies. By using our platform, you agree to these Terms.</p>
@@ -261,9 +260,9 @@ export default function LandingPage() {
       {isPrivacyOpen && (
         <div className="fixed inset-0 bg-black/70 z-[200] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-2xl max-h-[85vh] overflow-y-auto relative animate-slide-in">
-            <button onClick={() => setIsPrivacyOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2 bg-gray-50 rounded-full w-8 h-8 flex items-center justify-center font-bold">
+            <span onClick={() => setIsPrivacyOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2 bg-gray-50 rounded-full w-8 h-8 flex items-center justify-center font-bold cursor-pointer">
               ✕
-            </button>
+            </span>
             <h2 className="text-2xl font-black mb-4">Privacy Policy</h2>
             <div className="space-y-4 text-sm text-gray-600 leading-relaxed">
               <p><strong>1. Information We Collect:</strong> We collect necessary business data including name, WhatsApp number, digital catalog, and a 4-digit PIN for access.</p>
