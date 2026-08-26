@@ -24,7 +24,6 @@ export default function Storefront() {
   }, [storeSlug])
 
   async function fetchStoreData() {
-    // 1. Get Merchant
     const { data: merchantData, error: merchantError } = await supabase
       .from('merchants')
       .select('*')
@@ -37,7 +36,6 @@ export default function Storefront() {
     }
     setMerchant(merchantData)
 
-    // 2. Get Products
     const { data: productData } = await supabase
       .from('products')
       .select('*')
@@ -47,7 +45,6 @@ export default function Storefront() {
     setLoading(false)
   }
 
-  // --- CART LOGIC ---
   function addToCart(product) {
     setCart(prev => {
       const existing = prev.find(item => item.id === product.id)
@@ -56,10 +53,6 @@ export default function Storefront() {
       }
       return [...prev, { ...product, quantity: 1 }]
     })
-  }
-
-  function removeFromCart(productId) {
-    setCart(prev => prev.filter(item => item.id !== productId))
   }
 
   function updateQuantity(productId, delta) {
@@ -75,12 +68,10 @@ export default function Storefront() {
   const cartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0)
 
-  // --- CHECKOUT LOGIC ---
   async function handleCheckout(e) {
     e.preventDefault()
     setIsSubmitting(true)
 
-    // 1. Save strictly to the database first
     const { error } = await supabase
       .from('orders')
       .insert([{
@@ -99,7 +90,6 @@ export default function Storefront() {
       return
     }
 
-    // 2. Format the WhatsApp Message
     let orderText = `*New Order from ${customer.name}!* \n\n`
     orderText += `*Delivery Address:* ${customer.address}\n\n`
     orderText += `*Items Ordered:*\n`
@@ -111,11 +101,9 @@ export default function Storefront() {
     orderText += `\n*Total Amount:* ₦${cartTotal.toLocaleString()}\n`
     if (customer.notes) orderText += `\n*Customer Note:* ${customer.notes}`
 
-    // 3. Clean the phone number (remove spaces, + signs) and redirect
     const cleanPhone = merchant.phone_number.replace(/\D/g, '')
     const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(orderText)}`
 
-    // Reset and redirect
     setCart([])
     setIsCheckoutOpen(false)
     setIsSubmitting(false)
@@ -126,9 +114,10 @@ export default function Storefront() {
   if (!merchant) return <div className="min-h-screen flex items-center justify-center font-bold text-xl text-red-600">Store Not Found</div>
 
   const themeColor = merchant.theme_color || '#000000'
+  const hasSocials = merchant.instagram_url || merchant.tiktok_url || merchant.facebook_url || merchant.x_url
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24 font-sans">
+    <div className="min-h-screen bg-gray-50 pb-24 font-sans flex flex-col">
       
       {/* BRANDING HEADER */}
       <header className="bg-white border-b shadow-sm sticky top-0 z-10">
@@ -148,7 +137,7 @@ export default function Storefront() {
       </header>
 
       {/* PRODUCT GRID */}
-      <main className="max-w-4xl mx-auto px-4 py-8">
+      <main className="max-w-4xl mx-auto px-4 py-8 flex-1 w-full">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
           {products.map(product => (
             <div key={product.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow flex flex-col">
@@ -175,12 +164,43 @@ export default function Storefront() {
         </div>
       </main>
 
+      {/* SOCIAL MEDIA FOOTER */}
+      {hasSocials && (
+        <footer className="w-full bg-white border-t border-gray-200 mt-8 py-10">
+          <div className="max-w-4xl mx-auto px-4 text-center">
+            <h3 className="text-gray-900 font-bold mb-6 text-lg">Connect with {merchant.business_name}</h3>
+            <div className="flex flex-wrap justify-center gap-4">
+              {merchant.instagram_url && (
+                <a href={merchant.instagram_url} target="_blank" rel="noreferrer" className="bg-gray-50 text-gray-700 hover:text-black border border-gray-200 hover:border-black px-6 py-3 rounded-full font-bold transition-colors text-sm shadow-sm">
+                  Instagram
+                </a>
+              )}
+              {merchant.tiktok_url && (
+                <a href={merchant.tiktok_url} target="_blank" rel="noreferrer" className="bg-gray-50 text-gray-700 hover:text-black border border-gray-200 hover:border-black px-6 py-3 rounded-full font-bold transition-colors text-sm shadow-sm">
+                  TikTok
+                </a>
+              )}
+              {merchant.facebook_url && (
+                <a href={merchant.facebook_url} target="_blank" rel="noreferrer" className="bg-gray-50 text-gray-700 hover:text-blue-600 border border-gray-200 hover:border-blue-600 px-6 py-3 rounded-full font-bold transition-colors text-sm shadow-sm">
+                  Facebook
+                </a>
+              )}
+              {merchant.x_url && (
+                <a href={merchant.x_url} target="_blank" rel="noreferrer" className="bg-gray-50 text-gray-700 hover:text-black border border-gray-200 hover:border-black px-6 py-3 rounded-full font-bold transition-colors text-sm shadow-sm">
+                  X (Twitter)
+                </a>
+              )}
+            </div>
+          </div>
+        </footer>
+      )}
+
       {/* FLOATING CART BUTTON */}
       {cartCount > 0 && !isCheckoutOpen && (
-        <div className="fixed bottom-6 left-0 right-0 px-4 z-40 flex justify-center">
+        <div className="fixed bottom-6 left-0 right-0 px-4 z-40 flex justify-center pointer-events-none">
           <button 
             onClick={() => setIsCheckoutOpen(true)}
-            className="w-full max-w-md bg-black text-white px-6 py-4 rounded-2xl font-bold text-lg shadow-2xl flex justify-between items-center transform transition-transform hover:scale-[1.02] active:scale-95"
+            className="w-full max-w-md bg-black text-white px-6 py-4 rounded-2xl font-bold text-lg shadow-2xl flex justify-between items-center transform transition-transform hover:scale-[1.02] active:scale-95 pointer-events-auto"
           >
             <span className="bg-white text-black px-3 py-1 rounded-lg text-sm">{cartCount} items</span>
             <span>View Cart</span>
