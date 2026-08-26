@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { supabase } from './supabaseClient'
 
 export default function Admin() {
@@ -98,11 +98,17 @@ export default function Admin() {
       if (uploadedUrl) logo_url = uploadedUrl
     }
     const { error } = await supabase.from('merchants').update({ 
-      theme_color: selectedMerchant.theme_color, logo_url: logo_url, pin_code: selectedMerchant.pin_code
+      theme_color: selectedMerchant.theme_color, 
+      logo_url: logo_url, 
+      pin_code: selectedMerchant.pin_code,
+      facebook_url: selectedMerchant.facebook_url,
+      instagram_url: selectedMerchant.instagram_url,
+      tiktok_url: selectedMerchant.tiktok_url,
+      x_url: selectedMerchant.x_url
     }).eq('id', selectedMerchant.id)
     
     if (!error) {
-      alert('Brand settings updated!')
+      alert('Brand & Social settings updated!')
       setSelectedMerchant({...selectedMerchant, logo_url})
       setLogoFile(null)
       fetchMerchants()
@@ -152,7 +158,6 @@ export default function Admin() {
     <div className="p-4 sm:p-8 bg-gray-100 min-h-screen font-sans pb-20">
       <div className="max-w-7xl mx-auto">
         
-        {/* UPDATED BRANDING HEADER */}
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center gap-4">
             <img src="/crudhub-logo.jpg" alt="Crudhub Logo" className="h-12 w-auto object-contain drop-shadow-sm" />
@@ -166,15 +171,14 @@ export default function Admin() {
 
         {activeView === 'list' && (
           <div className="space-y-6">
-            
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex items-center justify-between">
                 <div><p className="text-sm text-gray-500 font-bold uppercase tracking-wider mb-1">Total Stores</p><h3 className="text-4xl font-black text-gray-900">{merchants.length}</h3></div>
-                <div className="text-5xl opacity-80">??</div>
+                <div className="text-5xl opacity-80">🏪</div>
               </div>
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex items-center justify-between">
                 <div><p className="text-sm text-gray-500 font-bold uppercase tracking-wider mb-1">Platform Products</p><h3 className="text-4xl font-black text-gray-900">{allProductsCount}</h3></div>
-                <div className="text-5xl opacity-80">??</div>
+                <div className="text-5xl opacity-80">📦</div>
               </div>
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex items-center justify-center">
                  <button onClick={() => setActiveView('add')} className="bg-black text-white px-6 py-4 rounded-xl font-bold w-full hover:bg-gray-800 transition-transform active:scale-95 shadow-md flex items-center justify-center gap-2 text-lg">
@@ -207,7 +211,7 @@ export default function Admin() {
                         </td>
                         <td className="p-4">
                           <a href={`/${m.slug}`} target="_blank" rel="noreferrer" className="text-blue-600 font-semibold hover:underline flex items-center gap-1 w-fit">
-                            /{m.slug} <span className="text-xs opacity-50">?</span>
+                            /{m.slug} <span className="text-xs opacity-50">↗</span>
                           </a>
                         </td>
                         <td className="p-4 text-gray-700 font-medium">{m.phone_number || <span className="text-red-400 italic text-sm">Missing</span>}</td>
@@ -222,7 +226,6 @@ export default function Admin() {
                     ))}
                   </tbody>
                 </table>
-                {merchants.length === 0 && <div className="p-12 text-center text-gray-400 font-medium text-lg">No merchants found. Create your first store above!</div>}
               </div>
             </div>
           </div>
@@ -233,10 +236,10 @@ export default function Admin() {
             <h2 className="text-2xl font-bold text-gray-800 mb-6">Register a New Client</h2>
             <form onSubmit={handleCreateMerchant} className="space-y-5">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Business Name</label><input required className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-black outline-none bg-gray-50 focus:bg-white" placeholder="e.g. Emily's Parfume" value={newMerchant.business_name} onChange={e => setNewMerchant({...newMerchant, business_name: e.target.value})} /></div>
-                <div><label className="block text-sm font-bold mb-1.5 text-gray-700">URL Slug</label><input required className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-black outline-none bg-gray-50 focus:bg-white" placeholder="e.g. emilys-parfume" value={newMerchant.slug} onChange={e => setNewMerchant({...newMerchant, slug: e.target.value.toLowerCase()})} /></div>
-                <div><label className="block text-sm font-bold mb-1.5 text-gray-700">WhatsApp Number</label><input required type="tel" className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-black outline-none bg-gray-50 focus:bg-white" placeholder="2348012345678" value={newMerchant.phone_number} onChange={e => setNewMerchant({...newMerchant, phone_number: e.target.value})} /></div>
-                <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Manager PIN</label><input required maxLength="4" className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-black outline-none bg-gray-50 focus:bg-white" placeholder="1234" value={newMerchant.pin_code} onChange={e => setNewMerchant({...newMerchant, pin_code: e.target.value})} /></div>
+                <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Business Name</label><input required className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-black outline-none bg-gray-50 focus:bg-white" value={newMerchant.business_name} onChange={e => setNewMerchant({...newMerchant, business_name: e.target.value})} /></div>
+                <div><label className="block text-sm font-bold mb-1.5 text-gray-700">URL Slug</label><input required className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-black outline-none bg-gray-50 focus:bg-white" value={newMerchant.slug} onChange={e => setNewMerchant({...newMerchant, slug: e.target.value.toLowerCase()})} /></div>
+                <div><label className="block text-sm font-bold mb-1.5 text-gray-700">WhatsApp Number</label><input required type="tel" className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-black outline-none bg-gray-50 focus:bg-white" value={newMerchant.phone_number} onChange={e => setNewMerchant({...newMerchant, phone_number: e.target.value})} /></div>
+                <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Manager PIN</label><input required maxLength="4" className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-black outline-none bg-gray-50 focus:bg-white" value={newMerchant.pin_code} onChange={e => setNewMerchant({...newMerchant, pin_code: e.target.value})} /></div>
               </div>
               <button type="submit" className="bg-green-600 text-white px-4 py-3.5 mt-4 rounded-xl font-bold w-full text-lg shadow-sm hover:bg-green-700 transition-colors">Launch Client Space</button>
             </form>
@@ -245,9 +248,11 @@ export default function Admin() {
 
         {activeView === 'manage' && selectedMerchant && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            {/* BRAND & SOCIAL SETTINGS */}
             <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200 h-fit">
-              <h2 className="text-xl font-bold text-gray-800 mb-4">Brand Settings</h2>
-              <form onSubmit={handleUpdateBrand} className="space-y-5">
+              <h2 className="text-xl font-bold text-gray-800 mb-4">Brand & Socials</h2>
+              <form onSubmit={handleUpdateBrand} className="space-y-4">
                 <div>
                   <label className="block text-sm font-bold mb-1.5 text-gray-700">Theme Color</label>
                   <input type="color" value={selectedMerchant.theme_color || '#000000'} onChange={e => setSelectedMerchant({...selectedMerchant, theme_color: e.target.value})} className="w-full h-12 rounded cursor-pointer border p-1" />
@@ -258,21 +263,34 @@ export default function Admin() {
                 </div>
                 <div>
                   <label className="block text-sm font-bold mb-1.5 text-gray-700">Business Logo</label>
-                  {selectedMerchant.logo_url && <img src={selectedMerchant.logo_url} alt="Logo" className="h-20 mb-3 rounded-lg border object-contain bg-gray-50 p-1" />}
+                  {selectedMerchant.logo_url && <img src={selectedMerchant.logo_url} alt="Logo" className="h-16 mb-2 rounded-lg border object-contain bg-gray-50 p-1" />}
                   <input type="file" accept="image/*" onChange={e => setLogoFile(e.target.files[0])} className="w-full border p-2 rounded-lg text-sm bg-gray-50" />
                 </div>
-                <button type="submit" disabled={isUploading} className="bg-black text-white px-4 py-3 rounded-xl font-bold w-full disabled:bg-gray-400 hover:bg-gray-800 transition-colors">
+                
+                {/* NEW SOCIAL MEDIA FIELDS */}
+                <div className="pt-4 border-t border-gray-100">
+                  <h3 className="font-bold text-gray-700 mb-3 text-sm">Social Links (Optional)</h3>
+                  <div className="space-y-3">
+                    <input placeholder="Instagram URL" className="w-full border p-2 rounded-lg text-sm bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-black" value={selectedMerchant.instagram_url || ''} onChange={e => setSelectedMerchant({...selectedMerchant, instagram_url: e.target.value})} />
+                    <input placeholder="TikTok URL" className="w-full border p-2 rounded-lg text-sm bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-black" value={selectedMerchant.tiktok_url || ''} onChange={e => setSelectedMerchant({...selectedMerchant, tiktok_url: e.target.value})} />
+                    <input placeholder="Facebook URL" className="w-full border p-2 rounded-lg text-sm bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-black" value={selectedMerchant.facebook_url || ''} onChange={e => setSelectedMerchant({...selectedMerchant, facebook_url: e.target.value})} />
+                    <input placeholder="X (Twitter) URL" className="w-full border p-2 rounded-lg text-sm bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-black" value={selectedMerchant.x_url || ''} onChange={e => setSelectedMerchant({...selectedMerchant, x_url: e.target.value})} />
+                  </div>
+                </div>
+
+                <button type="submit" disabled={isUploading} className="bg-black text-white px-4 py-3 mt-4 rounded-xl font-bold w-full disabled:bg-gray-400 hover:bg-gray-800 transition-colors">
                   {isUploading ? 'Saving...' : 'Save Settings'}
                 </button>
               </form>
             </div>
 
+            {/* CATALOG (Unchanged) */}
             <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
               <h2 className="text-xl font-bold text-gray-800 mb-4">Manage Catalog</h2>
               <form onSubmit={handleAddProduct} className="flex flex-col gap-3 mb-6 bg-gray-50 p-5 rounded-xl border border-gray-100">
                 <div className="flex flex-col sm:flex-row gap-3">
                   <input required placeholder="Item Name" className="border p-2.5 rounded-lg flex-1 outline-none focus:ring-2 focus:ring-black" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
-                  <input required type="number" placeholder="Price (?)" className="border p-2.5 rounded-lg sm:w-32 outline-none focus:ring-2 focus:ring-black" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} />
+                  <input required type="number" placeholder="Price (₦)" className="border p-2.5 rounded-lg sm:w-32 outline-none focus:ring-2 focus:ring-black" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} />
                   <input required placeholder="Category" className="border p-2.5 rounded-lg sm:w-1/4 outline-none focus:ring-2 focus:ring-black" value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} />
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3 items-center">
@@ -290,13 +308,12 @@ export default function Admin() {
                       {p.image_url ? <img src={p.image_url} alt={p.name} className="w-14 h-14 object-cover rounded-lg border shadow-sm bg-white" /> : <div className="w-14 h-14 bg-gray-200 rounded-lg flex items-center justify-center text-xs text-gray-500 font-bold border">No Img</div>}
                       <div>
                         <h4 className="font-bold text-gray-900">{p.name}</h4>
-                        <p className="text-sm text-green-700 font-bold">?{Number(p.price).toLocaleString()}</p>
+                        <p className="text-sm text-green-700 font-bold">₦{Number(p.price).toLocaleString()}</p>
                       </div>
                     </div>
                     <button onClick={() => handleDeleteProduct(p.id)} className="text-red-500 font-bold hover:bg-red-50 px-3 py-1.5 rounded-lg text-sm transition-colors border border-transparent hover:border-red-200">Delete</button>
                   </div>
                 ))}
-                {products.length === 0 && <p className="text-center text-gray-400 font-medium py-8">No products added yet.</p>}
               </div>
             </div>
           </div>
