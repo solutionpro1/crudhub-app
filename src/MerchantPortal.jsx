@@ -16,6 +16,11 @@ export default function MerchantPortal() {
   const [activeTab, setActiveTab] = useState('orders')
   const [orders, setOrders] = useState([])
   const [products, setProducts] = useState([])
+  
+  // Settings State
+  const [editMerchant, setEditMerchant] = useState({})
+  const [logoFile, setLogoFile] = useState(null)
+  const [isUploading, setIsUploading] = useState(false)
 
   useEffect(() => {
     fetchMerchantDetails()
@@ -32,6 +37,7 @@ export default function MerchantPortal() {
       alert('Store not found!')
     } else {
       setMerchant(data)
+      setEditMerchant(data) // Load their current settings into the form
     }
     setLoading(false)
   }
@@ -77,6 +83,47 @@ export default function MerchantPortal() {
     }
   }
 
+  // --- BRAND SETTINGS LOGIC ---
+  async function uploadFile(file, pathPrefix) {
+    if (!file) return null;
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${pathPrefix}-${Date.now()}.${fileExt}`;
+    const { error } = await supabase.storage.from('crudhub-images').upload(fileName, file);
+    if (error) { alert('Upload failed: ' + error.message); return null; }
+    const { data } = supabase.storage.from('crudhub-images').getPublicUrl(fileName);
+    return data.publicUrl;
+  }
+
+  async function handleUpdateSettings(e) {
+    e.preventDefault()
+    setIsUploading(true)
+    let logo_url = editMerchant.logo_url
+    
+    if (logoFile) {
+      const uploadedUrl = await uploadFile(logoFile, `logos/${editMerchant.slug}`)
+      if (uploadedUrl) logo_url = uploadedUrl
+    }
+
+    const { error } = await supabase.from('merchants').update({ 
+      theme_color: editMerchant.theme_color, 
+      logo_url: logo_url, 
+      pin_code: editMerchant.pin_code,
+      facebook_url: editMerchant.facebook_url,
+      instagram_url: editMerchant.instagram_url,
+      tiktok_url: editMerchant.tiktok_url,
+      x_url: editMerchant.x_url
+    }).eq('id', merchant.id)
+    
+    if (!error) {
+      alert('Store settings updated successfully!')
+      setMerchant({...editMerchant, logo_url})
+      setLogoFile(null)
+    } else { 
+      alert('Error: ' + error.message) 
+    }
+    setIsUploading(false)
+  }
+
   if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-xl">Loading space...</div>
   if (!merchant) return <div className="min-h-screen flex items-center justify-center font-bold text-xl text-red-600">Store not found.</div>
 
@@ -120,7 +167,6 @@ export default function MerchantPortal() {
 
   return (
     <div className="min-h-screen bg-gray-100 font-sans pb-20">
-      {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
         <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -138,6 +184,7 @@ export default function MerchantPortal() {
           <button onClick={() => setActiveTab('orders')} className={`w-full text-left px-5 py-4 rounded-xl font-bold transition-colors ${activeTab === 'orders' ? 'bg-black text-white shadow-md' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'}`}>🛍️ Order History</button>
           <button onClick={() => setActiveTab('qr')} className={`w-full text-left px-5 py-4 rounded-xl font-bold transition-colors ${activeTab === 'qr' ? 'bg-black text-white shadow-md' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'}`}>📲 Store QR Code</button>
           <button onClick={() => setActiveTab('catalog')} className={`w-full text-left px-5 py-4 rounded-xl font-bold transition-colors ${activeTab === 'catalog' ? 'bg-black text-white shadow-md' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'}`}>📦 My Catalog</button>
+          <button onClick={() => setActiveTab('settings')} className={`w-full text-left px-5 py-4 rounded-xl font-bold transition-colors ${activeTab === 'settings' ? 'bg-black text-white shadow-md' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'}`}>⚙️ Store Settings</button>
         </div>
 
         {/* Main Content Area */}
@@ -232,6 +279,67 @@ export default function MerchantPortal() {
                  ))}
                  {products.length === 0 && <p className="text-gray-500 font-medium">No products loaded yet.</p>}
                </div>
+            </div>
+          )}
+
+          {/* NEW SETTINGS TAB */}
+          {activeTab === 'settings' && (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 max-w-2xl">
+              <h2 className="text-xl font-bold text-gray-800 mb-6">Store Settings</h2>
+              
+              <form onSubmit={handleUpdateSettings} className="space-y-6">
+                
+                {/* Brand Identity */}
+                <div className="p-5 bg-gray-50 rounded-xl border border-gray-100 space-y-4">
+                  <h3 className="font-bold text-gray-900 text-lg">Brand Identity</h3>
+                  <div>
+                    <label className="block text-sm font-bold mb-1.5 text-gray-700">Theme Color</label>
+                    <input type="color" value={editMerchant.theme_color || '#000000'} onChange={e => setEditMerchant({...editMerchant, theme_color: e.target.value})} className="w-full h-12 rounded cursor-pointer border p-1" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold mb-1.5 text-gray-700">Business Logo</label>
+                    {editMerchant.logo_url && <img src={editMerchant.logo_url} alt="Logo" className="h-16 mb-2 rounded-lg border object-contain bg-white p-1" />}
+                    <input type="file" accept="image/*" onChange={e => setLogoFile(e.target.files[0])} className="w-full border p-2 rounded-lg text-sm bg-white" />
+                  </div>
+                </div>
+
+                {/* Social Links */}
+                <div className="p-5 bg-gray-50 rounded-xl border border-gray-100 space-y-4">
+                  <h3 className="font-bold text-gray-900 text-lg">Social Links</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-bold mb-1.5 text-gray-700">Instagram URL</label>
+                      <input placeholder="https://instagram.com/..." className="w-full border p-2.5 rounded-lg text-sm bg-white focus:ring-2 focus:ring-black outline-none" value={editMerchant.instagram_url || ''} onChange={e => setEditMerchant({...editMerchant, instagram_url: e.target.value})} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold mb-1.5 text-gray-700">TikTok URL</label>
+                      <input placeholder="https://tiktok.com/@..." className="w-full border p-2.5 rounded-lg text-sm bg-white focus:ring-2 focus:ring-black outline-none" value={editMerchant.tiktok_url || ''} onChange={e => setEditMerchant({...editMerchant, tiktok_url: e.target.value})} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold mb-1.5 text-gray-700">Facebook URL</label>
+                      <input placeholder="https://facebook.com/..." className="w-full border p-2.5 rounded-lg text-sm bg-white focus:ring-2 focus:ring-black outline-none" value={editMerchant.facebook_url || ''} onChange={e => setEditMerchant({...editMerchant, facebook_url: e.target.value})} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold mb-1.5 text-gray-700">X (Twitter) URL</label>
+                      <input placeholder="https://x.com/..." className="w-full border p-2.5 rounded-lg text-sm bg-white focus:ring-2 focus:ring-black outline-none" value={editMerchant.x_url || ''} onChange={e => setEditMerchant({...editMerchant, x_url: e.target.value})} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Security */}
+                <div className="p-5 bg-gray-50 rounded-xl border border-gray-100 space-y-4">
+                  <h3 className="font-bold text-gray-900 text-lg">Security</h3>
+                  <div>
+                    <label className="block text-sm font-bold mb-1.5 text-gray-700">Manager PIN</label>
+                    <input required maxLength="4" type="password" placeholder="1234" className="w-full border p-2.5 rounded-lg bg-white focus:ring-2 focus:ring-black outline-none" value={editMerchant.pin_code || ''} onChange={e => setEditMerchant({...editMerchant, pin_code: e.target.value})} />
+                    <p className="text-xs text-gray-500 mt-1">If you change this, you will need to use the new PIN the next time you log in.</p>
+                  </div>
+                </div>
+
+                <button type="submit" disabled={isUploading} className="bg-black text-white px-6 py-4 rounded-xl font-bold w-full text-lg shadow-md hover:bg-gray-800 transition-colors disabled:bg-gray-400">
+                  {isUploading ? 'Saving Settings...' : 'Save All Settings'}
+                </button>
+              </form>
             </div>
           )}
 
