@@ -6,7 +6,6 @@ export default function LandingPage() {
   const [isLoginOpen, setIsLoginOpen] = useState(false)
   const [isSignupOpen, setIsSignupOpen] = useState(false)
   
-  // NEW LEGAL MODALS STATE
   const [isTermsOpen, setIsTermsOpen] = useState(false)
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false)
 
@@ -190,7 +189,7 @@ export default function LandingPage() {
             <form onSubmit={handleSignup} className="space-y-4">
               <div>
                 <label className="block text-sm font-bold mb-1.5 text-gray-700">Business Name</label>
-                <input required className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-black outline-none bg-gray-50 focus:bg-white" value={newStore.business_name} onChange={handleBusinessNameChange} placeholder="e.g., Olamide's Boutique" />
+                <input required className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-black outline-none bg-gray-50 focus:bg-white" value={newStore.business_name} onChange={handleBusinessNameChange} placeholder="e.g., SolutionPRO Gadgets" />
               </div>
               <div>
                 <label className="block text-sm font-bold mb-1.5 text-gray-700">Store Link</label>
@@ -206,7 +205,6 @@ export default function LandingPage() {
               <div>
                 <label className="block text-sm font-bold mb-1.5 text-gray-700">Create a 4-Digit PIN</label>
                 <input required type="password" maxLength="4" className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-black outline-none bg-gray-50 focus:bg-white tracking-widest font-mono" value={newStore.pin_code} onChange={e => setNewStore({...newStore, pin_code: e.target.value.replace(/\D/g, '')})} placeholder="1234" />
-                <p className="text-xs text-gray-400 mt-1">You will use this PIN to log into your merchant portal.</p>
               </div>
               
               <div className="flex items-start gap-3 mt-4 bg-gray-50 p-3 rounded-lg border border-gray-100">
@@ -217,9 +215,17 @@ export default function LandingPage() {
                   onChange={(e) => setAgreedToTerms(e.target.checked)}
                   className="mt-1 w-4 h-4 text-black focus:ring-black rounded border-gray-300"
                 />
-                <label htmlFor="terms" className="text-sm text-gray-600 font-medium leading-tight">
-                  I agree to the <button type="button" onClick={() => setIsTermsOpen(true)} className="text-blue-600 hover:underline">Terms & Conditions</button> and confirm my business operates legally within my jurisdiction.
-                </label>
+                <div className="text-sm text-gray-600 font-medium leading-tight">
+                  <label htmlFor="terms">I agree to the </label>
+                  <button 
+                    type="button" 
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsTermsOpen(true); }} 
+                    className="text-blue-600 hover:underline font-bold"
+                  >
+                    Terms & Conditions
+                  </button>
+                  <label htmlFor="terms"> and confirm my business operates legally.</label>
+                </div>
               </div>
 
               {signupError && <p className="text-red-500 text-sm font-bold">{signupError}</p>}
@@ -233,13 +239,13 @@ export default function LandingPage() {
 
       {/* TERMS MODAL */}
       {isTermsOpen && (
-        <div className="fixed inset-0 bg-black/60 z-[110] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/70 z-[200] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-2xl max-h-[85vh] overflow-y-auto relative animate-slide-in">
             <button onClick={() => setIsTermsOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2 bg-gray-50 rounded-full w-8 h-8 flex items-center justify-center font-bold">
               ✕
             </button>
             <h2 className="text-2xl font-black mb-4">Terms and Conditions</h2>
-            <div className="space-y-4 text-sm text-gray-600">
+            <div className="space-y-4 text-sm text-gray-600 leading-relaxed">
               <p><strong>1. Introduction:</strong> Welcome to Crudhub, powered by SolutionPRO Technologies. By using our platform, you agree to these Terms.</p>
               <p><strong>2. Software Provider Status:</strong> We provide the digital infrastructure. We do not handle logistics, product fulfillment, or direct payment processing. Disputes must be resolved directly between the buyer and the merchant.</p>
               <p><strong>3. Subscriptions and Billing:</strong> New merchants receive a 14-day free trial. Continued access requires a subscription (₦1,400 monthly / ₦13,440 yearly). Failure to renew suspends the storefront.</p>
@@ -253,13 +259,13 @@ export default function LandingPage() {
 
       {/* PRIVACY MODAL */}
       {isPrivacyOpen && (
-        <div className="fixed inset-0 bg-black/60 z-[110] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/70 z-[200] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-2xl max-h-[85vh] overflow-y-auto relative animate-slide-in">
             <button onClick={() => setIsPrivacyOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2 bg-gray-50 rounded-full w-8 h-8 flex items-center justify-center font-bold">
               ✕
             </button>
             <h2 className="text-2xl font-black mb-4">Privacy Policy</h2>
-            <div className="space-y-4 text-sm text-gray-600">
+            <div className="space-y-4 text-sm text-gray-600 leading-relaxed">
               <p><strong>1. Information We Collect:</strong> We collect necessary business data including name, WhatsApp number, digital catalog, and a 4-digit PIN for access.</p>
               <p><strong>2. How We Use Your Data:</strong> Your data operates your storefront, authenticates logins, and routes WhatsApp orders. Contact info is used for billing reminders.</p>
               <p><strong>3. Data Security:</strong> We comply with NDPR and standard data protection laws, securing your data in cloud environments. We never sell your data.</p>
