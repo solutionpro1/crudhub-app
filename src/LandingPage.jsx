@@ -72,6 +72,11 @@ export default function LandingPage() {
   const salesMessage = "Hello SolutionPRO! I would like to talk to sales about setting up my Crudhub store."
   const whatsappSalesUrl = `https://wa.me/2349028116376?text=${encodeURIComponent(salesMessage)}`
 
+  // Helper function to force open legal pages
+  const openLegal = (path) => {
+    window.open(path, '_blank', 'noopener,noreferrer')
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
       <nav className="bg-white border-b border-gray-200 fixed w-full top-0 z-50">
@@ -146,9 +151,9 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="mt-8 flex justify-center gap-4 text-gray-500 text-sm font-medium">
-             <a href="/terms" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">Terms & Conditions</a>
+             <button type="button" onClick={() => openLegal('/terms')} className="hover:text-white transition-colors cursor-pointer">Terms & Conditions</button>
              <span>|</span>
-             <a href="/privacy" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">Privacy Policy</a>
+             <button type="button" onClick={() => openLegal('/privacy')} className="hover:text-white transition-colors cursor-pointer">Privacy Policy</button>
           </div>
           <p className="text-gray-600 text-xs font-medium mt-4">© {new Date().getFullYear()} Crudhub. Powered by SolutionPRO Technologies. All rights reserved.</p>
         </div>
@@ -157,8 +162,8 @@ export default function LandingPage() {
       {isLoginOpen && (
         <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm relative animate-slide-in">
-            <button onClick={() => setIsLoginOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2 bg-gray-50 rounded-full w-8 h-8 flex items-center justify-center font-bold">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <button type="button" onClick={() => setIsLoginOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2 bg-gray-50 rounded-full w-8 h-8 flex items-center justify-center font-bold">
+              ✕
             </button>
             <h2 className="text-2xl font-bold mb-2">Merchant Login</h2>
             <p className="text-gray-500 text-sm font-medium mb-6">Enter your store's URL name to access your dashboard.</p>
@@ -178,8 +183,8 @@ export default function LandingPage() {
       {isSignupOpen && (
         <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md relative animate-slide-in">
-            <button onClick={() => setIsSignupOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2 bg-gray-50 rounded-full w-8 h-8 flex items-center justify-center font-bold">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <button type="button" onClick={() => setIsSignupOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2 bg-gray-50 rounded-full w-8 h-8 flex items-center justify-center font-bold cursor-pointer">
+              ✕
             </button>
             <h2 className="text-2xl font-bold mb-2">Create Your Store</h2>
             <p className="text-gray-500 text-sm font-medium mb-6">Start your 14-day free trial immediately. No credit card required.</p>
@@ -214,14 +219,13 @@ export default function LandingPage() {
                 />
                 <div className="text-sm text-gray-600 font-medium leading-tight">
                   <label htmlFor="terms">I agree to the </label>
-                  <a 
-                    href="/terms" 
-                    target="_blank" 
-                    rel="noreferrer"
+                  <button 
+                    type="button" 
+                    onClick={(e) => { e.preventDefault(); openLegal('/terms'); }} 
                     className="text-blue-600 hover:underline font-bold"
                   >
                     Terms & Conditions
-                  </a>
+                  </button>
                   <label htmlFor="terms"> and confirm my business operates legally.</label>
                 </div>
               </div>
