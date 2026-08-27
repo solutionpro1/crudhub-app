@@ -36,7 +36,7 @@ export default function LandingPage() {
   async function handleSignup(e) {
     e.preventDefault()
     if (!agreedToTerms) {
-      setSignupError('You must agree to the Terms & Conditions to proceed.')
+      setSignupError('You must agree to the Terms & Conditions and Privacy Policy to proceed.')
       return
     }
     
@@ -74,6 +74,13 @@ export default function LandingPage() {
 
   const salesMessage = "Hello SolutionPRO! I would like to talk to sales about setting up my Crudhub store."
   const whatsappSalesUrl = `https://wa.me/2349028116376?text=${encodeURIComponent(salesMessage)}`
+
+  // The reusable Close Icon SVG
+  const CloseIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  )
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
@@ -160,8 +167,8 @@ export default function LandingPage() {
       {isLoginOpen && (
         <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm relative animate-slide-in">
-            <button type="button" onClick={() => setIsLoginOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2 bg-gray-50 rounded-full w-8 h-8 flex items-center justify-center font-bold">
-              ?
+            <button type="button" onClick={() => setIsLoginOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2 bg-gray-50 rounded-full w-8 h-8 flex items-center justify-center font-bold cursor-pointer">
+              <CloseIcon />
             </button>
             <h2 className="text-2xl font-bold mb-2">Merchant Login</h2>
             <p className="text-gray-500 text-sm font-medium mb-6">Enter your store's URL name to access your dashboard.</p>
@@ -182,7 +189,7 @@ export default function LandingPage() {
         <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md relative animate-slide-in">
             <button type="button" onClick={() => setIsSignupOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2 bg-gray-50 rounded-full w-8 h-8 flex items-center justify-center font-bold cursor-pointer">
-              ?
+              <CloseIcon />
             </button>
             <h2 className="text-2xl font-bold mb-2">Create Your Store</h2>
             <p className="text-gray-500 text-sm font-medium mb-6">Launch your platform immediately. No credit card required.</p>
@@ -215,7 +222,7 @@ export default function LandingPage() {
                   onChange={(e) => setAgreedToTerms(e.target.checked)}
                   className="mt-1 w-4 h-4 text-black focus:ring-black rounded border-gray-300"
                 />
-                <div className="text-sm text-gray-600 font-medium leading-tight">
+                <div className="text-sm text-gray-600 font-medium leading-tight pt-0.5">
                   <label htmlFor="terms">I agree to the </label>
                   <button 
                     type="button" 
@@ -224,7 +231,15 @@ export default function LandingPage() {
                   >
                     Terms & Conditions
                   </button>
-                  <label htmlFor="terms"> and confirm my business operates legally.</label>
+                  <span> and </span>
+                  <button 
+                    type="button" 
+                    onClick={(e) => { e.preventDefault(); setIsPrivacyOpen(true); }} 
+                    className="text-blue-600 hover:underline font-bold"
+                  >
+                    Privacy Policy
+                  </button>
+                  <label htmlFor="terms">, and confirm my business operates legally.</label>
                 </div>
               </div>
 
@@ -242,7 +257,7 @@ export default function LandingPage() {
         <div className="fixed inset-0 bg-black/70 z-[200] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 w-full max-w-3xl max-h-[85vh] overflow-y-auto relative animate-slide-in">
             <button onClick={() => setIsTermsOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2 bg-gray-50 rounded-full w-8 h-8 flex items-center justify-center font-bold cursor-pointer sticky-close">
-              ?
+              <CloseIcon />
             </button>
             <h2 className="text-3xl font-black mb-2 text-gray-900">Terms and Conditions</h2>
             <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-6 pb-4 border-b border-gray-100">Last Updated: August 2026</p>
@@ -312,7 +327,7 @@ export default function LandingPage() {
         <div className="fixed inset-0 bg-black/70 z-[200] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 w-full max-w-3xl max-h-[85vh] overflow-y-auto relative animate-slide-in">
             <button onClick={() => setIsPrivacyOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2 bg-gray-50 rounded-full w-8 h-8 flex items-center justify-center font-bold cursor-pointer sticky-close">
-              ?
+              <CloseIcon />
             </button>
             <h2 className="text-3xl font-black mb-2 text-gray-900">Privacy Policy</h2>
             <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-6 pb-4 border-b border-gray-100">Last Updated: August 2026</p>
