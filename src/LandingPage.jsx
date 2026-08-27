@@ -160,7 +160,7 @@ export default function LandingPage() {
              <span>|</span>
              <button type="button" onClick={() => setIsPrivacyOpen(true)} className="hover:text-white transition-colors cursor-pointer">Privacy Policy</button>
           </div>
-          <p className="text-gray-600 text-xs font-medium mt-4">? {new Date().getFullYear()} Crudhub. Powered by SolutionPRO Technologies. All rights reserved.</p>
+          <p className="text-gray-600 text-xs font-medium mt-4">&copy; {new Date().getFullYear()} Crudhub. Powered by SolutionPRO Technologies. All rights reserved.</p>
         </div>
       </footer>
 
@@ -379,3 +379,4 @@ export default function LandingPage() {
     </div>
   )
 }
+
