@@ -153,7 +153,7 @@ export default function LandingPage() {
              <span>|</span>
              <button type="button" onClick={() => setIsPrivacyOpen(true)} className="hover:text-white transition-colors cursor-pointer">Privacy Policy</button>
           </div>
-          <p className="text-gray-600 text-xs font-medium mt-4">� {new Date().getFullYear()} Crudhub. Powered by SolutionPRO Technologies. All rights reserved.</p>
+          <p className="text-gray-600 text-xs font-medium mt-4">? {new Date().getFullYear()} Crudhub. Powered by SolutionPRO Technologies. All rights reserved.</p>
         </div>
       </footer>
 
@@ -185,7 +185,7 @@ export default function LandingPage() {
               ?
             </button>
             <h2 className="text-2xl font-bold mb-2">Create Your Store</h2>
-            <p className="text-gray-500 text-sm font-medium mb-6">Start your 14-day free trial immediately. No credit card required.</p>
+            <p className="text-gray-500 text-sm font-medium mb-6">Launch your platform immediately. No credit card required.</p>
             <form onSubmit={handleSignup} className="space-y-4">
               <div>
                 <label className="block text-sm font-bold mb-1.5 text-gray-700">Business Name</label>
@@ -237,7 +237,7 @@ export default function LandingPage() {
         </div>
       )}
 
-      {/* EXPANDED TERMS MODAL */}
+      {/* EXPANDED TERMS MODAL (SUBSCRIPTION HIDDEN) */}
       {isTermsOpen && (
         <div className="fixed inset-0 bg-black/70 z-[200] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 w-full max-w-3xl max-h-[85vh] overflow-y-auto relative animate-slide-in">
@@ -264,13 +264,8 @@ export default function LandingPage() {
               </div>
 
               <div>
-                <h3 className="font-bold text-gray-900 text-base mb-2">4. Subscriptions, Billing, and Suspension</h3>
-                <p>All newly registered merchants are granted a fourteen (14) day free trial. Following the trial period, continued access to both the merchant dashboard and the public-facing storefront requires an active, paid subscription.</p>
-                <ul className="list-disc pl-5 mt-2 space-y-1">
-                  <li><strong>Pricing:</strong> ?1,400 per month, or ?13,440 per year.</li>
-                  <li><strong>The "Kill Switch":</strong> If a subscription expires and is not renewed, SolutionPRO Technologies reserves the right to immediately suspend the merchant's public storefront. The storefront will display an "Offline" notice until payment is cleared.</li>
-                  <li>All subscription payments are non-refundable.</li>
-                </ul>
+                <h3 className="font-bold text-gray-900 text-base mb-2">4. Service Access and Modifications</h3>
+                <p>SolutionPRO Technologies currently provides Crudhub as a platform for registered merchants. We reserve the right to modify, update, suspend, or adjust the features and access requirements of the platform at our discretion. Merchants will be provided with reasonable notice regarding any future updates to our service structure or access policies.</p>
               </div>
 
               <div>
@@ -282,7 +277,7 @@ export default function LandingPage() {
                   <li>Engage in fraudulent activities or deceive end-consumers.</li>
                   <li>Spam or abuse the WhatsApp API integration.</li>
                 </ul>
-                <p className="mt-2">Violation of this policy will result in the immediate and permanent deletion of your account and data, without prior notice or refund.</p>
+                <p className="mt-2">Violation of this policy will result in the immediate and permanent deletion of your account and data, without prior notice.</p>
               </div>
 
               <div>
@@ -297,7 +292,7 @@ export default function LandingPage() {
 
               <div>
                 <h3 className="font-bold text-gray-900 text-base mb-2">8. Contact Information</h3>
-                <p>For legal inquiries, support, or billing questions, please contact SolutionPRO Technologies at:</p>
+                <p>For legal inquiries or support, please contact SolutionPRO Technologies at:</p>
                 <div className="mt-2 bg-gray-50 p-4 rounded-lg border border-gray-200">
                   <p><strong>Address:</strong> 33A Olorunsogo Street, Sote, Ibafo, Ogun State, Nigeria</p>
                   <p><strong>Phone:</strong> +234 902 811 6376</p>
@@ -312,7 +307,7 @@ export default function LandingPage() {
         </div>
       )}
 
-      {/* EXPANDED PRIVACY MODAL */}
+      {/* EXPANDED PRIVACY MODAL (SUBSCRIPTION HIDDEN) */}
       {isPrivacyOpen && (
         <div className="fixed inset-0 bg-black/70 z-[200] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 w-full max-w-3xl max-h-[85vh] overflow-y-auto relative animate-slide-in">
@@ -335,7 +330,7 @@ export default function LandingPage() {
                   <li>Generate and host your public-facing digital storefront.</li>
                   <li>Authenticate your login sessions to the Merchant Portal.</li>
                   <li>Format and route incoming customer orders directly to your provided WhatsApp number.</li>
-                  <li>Send automated system notifications, such as subscription expiration warnings.</li>
+                  <li>Send automated system notifications and important platform updates.</li>
                 </ul>
               </div>
 
