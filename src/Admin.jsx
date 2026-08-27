@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from './supabaseClient'
 
 export default function Admin() {
@@ -217,7 +217,7 @@ export default function Admin() {
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center gap-4">
-            <img src="/crudhub-logo.jpg" alt="Crudhub Logo" className="h-12 w-auto object-contain drop-shadow-sm" />
+            <img src="/crudhub-logo.jpg" alt="Crudhub Logo" className="h-12 w-12 rounded-full object-cover shadow-sm border border-gray-200" />
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Crudhub Super Admin</h1>
           </div>
           <div className="flex gap-4">
@@ -328,8 +328,8 @@ export default function Admin() {
                   <div className="flex justify-between items-end pt-2 border-t border-gray-200"><span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Time Left</span><span className={`font-bold px-2 py-0.5 rounded text-sm ${getDaysRemaining(selectedMerchant.subscription_end_date) <= 3 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>{getDaysRemaining(selectedMerchant.subscription_end_date)} Days</span></div>
                 </div>
                 <div className="space-y-3">
-                  <button onClick={() => handleRenewSubscription('monthly')} className="w-full bg-black text-white py-3 rounded-lg font-bold hover:bg-gray-800 transition-colors shadow-sm flex justify-between px-4"><span>Renew Monthly</span><span className="text-gray-300">₦1,400</span></button>
-                  <button onClick={() => handleRenewSubscription('yearly')} className="w-full bg-white text-gray-900 border-2 border-gray-200 py-3 rounded-lg font-bold hover:bg-gray-50 transition-colors shadow-sm flex justify-between px-4"><span>Renew Yearly</span><span className="text-gray-500">₦13,440</span></button>
+                  <button onClick={() => handleRenewSubscription('monthly')} className="w-full bg-black text-white py-3 rounded-lg font-bold hover:bg-gray-800 transition-colors shadow-sm flex justify-between px-4"><span>Renew Monthly</span><span className="text-gray-300">?1,400</span></button>
+                  <button onClick={() => handleRenewSubscription('yearly')} className="w-full bg-white text-gray-900 border-2 border-gray-200 py-3 rounded-lg font-bold hover:bg-gray-50 transition-colors shadow-sm flex justify-between px-4"><span>Renew Yearly</span><span className="text-gray-500">?13,440</span></button>
                 </div>
               </div>
 
@@ -368,7 +368,7 @@ export default function Admin() {
               <form onSubmit={handleAddProduct} className="flex flex-col gap-3 mb-6 bg-gray-50 p-5 rounded-xl border border-gray-100">
                 <div className="flex flex-col sm:flex-row gap-3">
                   <input required placeholder="Item Name" className="border p-2.5 rounded-lg flex-1 outline-none focus:ring-2 focus:ring-black" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
-                  <input required type="number" placeholder="Price (₦)" className="border p-2.5 rounded-lg sm:w-32 outline-none focus:ring-2 focus:ring-black" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} />
+                  <input required type="number" placeholder="Price (?)" className="border p-2.5 rounded-lg sm:w-32 outline-none focus:ring-2 focus:ring-black" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} />
                   <input required placeholder="Category" className="border p-2.5 rounded-lg sm:w-1/4 outline-none focus:ring-2 focus:ring-black" value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} />
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3 items-center">
@@ -386,7 +386,7 @@ export default function Admin() {
                       {p.image_url ? <img src={p.image_url} alt={p.name} className="w-14 h-14 object-cover rounded-lg border shadow-sm bg-white" /> : <div className="w-14 h-14 bg-gray-200 rounded-lg flex items-center justify-center text-xs text-gray-500 font-bold border">No Img</div>}
                       <div>
                         <h4 className="font-bold text-gray-900">{p.name}</h4>
-                        <p className="text-sm text-green-700 font-bold">₦{Number(p.price).toLocaleString()}</p>
+                        <p className="text-sm text-green-700 font-bold">?{Number(p.price).toLocaleString()}</p>
                       </div>
                     </div>
                     <button onClick={() => handleDeleteProduct(p.id)} className="text-red-500 font-bold hover:bg-red-50 px-3 py-1.5 rounded-lg text-sm transition-colors border border-transparent hover:border-red-200">Delete</button>

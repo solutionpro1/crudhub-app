@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from './supabaseClient'
 
@@ -80,7 +80,7 @@ export default function LandingPage() {
       <nav className="bg-white border-b border-gray-200 fixed w-full top-0 z-50">
         <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/crudhub-logo.jpg" alt="Crudhub Logo" className="h-10 w-auto rounded object-contain" />
+            <img src="/crudhub-logo.jpg" alt="Crudhub Logo" className="h-10 w-10 rounded-full object-cover shadow-sm border border-gray-100" />
             <span className="text-2xl font-black tracking-tight">Crudhub</span>
           </div>
           <button onClick={() => setIsLoginOpen(true)} className="text-sm font-bold bg-gray-100 hover:bg-gray-200 text-gray-800 px-5 py-2.5 rounded-lg transition-colors">Merchant Login</button>
@@ -153,7 +153,7 @@ export default function LandingPage() {
              <span>|</span>
              <button type="button" onClick={() => setIsPrivacyOpen(true)} className="hover:text-white transition-colors cursor-pointer">Privacy Policy</button>
           </div>
-          <p className="text-gray-600 text-xs font-medium mt-4">© {new Date().getFullYear()} Crudhub. Powered by SolutionPRO Technologies. All rights reserved.</p>
+          <p className="text-gray-600 text-xs font-medium mt-4">� {new Date().getFullYear()} Crudhub. Powered by SolutionPRO Technologies. All rights reserved.</p>
         </div>
       </footer>
 
@@ -161,7 +161,7 @@ export default function LandingPage() {
         <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm relative animate-slide-in">
             <button type="button" onClick={() => setIsLoginOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2 bg-gray-50 rounded-full w-8 h-8 flex items-center justify-center font-bold">
-              ✕
+              ?
             </button>
             <h2 className="text-2xl font-bold mb-2">Merchant Login</h2>
             <p className="text-gray-500 text-sm font-medium mb-6">Enter your store's URL name to access your dashboard.</p>
@@ -182,7 +182,7 @@ export default function LandingPage() {
         <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md relative animate-slide-in">
             <button type="button" onClick={() => setIsSignupOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2 bg-gray-50 rounded-full w-8 h-8 flex items-center justify-center font-bold cursor-pointer">
-              ✕
+              ?
             </button>
             <h2 className="text-2xl font-bold mb-2">Create Your Store</h2>
             <p className="text-gray-500 text-sm font-medium mb-6">Start your 14-day free trial immediately. No credit card required.</p>
@@ -242,7 +242,7 @@ export default function LandingPage() {
         <div className="fixed inset-0 bg-black/70 z-[200] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 w-full max-w-3xl max-h-[85vh] overflow-y-auto relative animate-slide-in">
             <button onClick={() => setIsTermsOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2 bg-gray-50 rounded-full w-8 h-8 flex items-center justify-center font-bold cursor-pointer sticky-close">
-              ✕
+              ?
             </button>
             <h2 className="text-3xl font-black mb-2 text-gray-900">Terms and Conditions</h2>
             <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-6 pb-4 border-b border-gray-100">Last Updated: August 2026</p>
@@ -267,7 +267,7 @@ export default function LandingPage() {
                 <h3 className="font-bold text-gray-900 text-base mb-2">4. Subscriptions, Billing, and Suspension</h3>
                 <p>All newly registered merchants are granted a fourteen (14) day free trial. Following the trial period, continued access to both the merchant dashboard and the public-facing storefront requires an active, paid subscription.</p>
                 <ul className="list-disc pl-5 mt-2 space-y-1">
-                  <li><strong>Pricing:</strong> ₦1,400 per month, or ₦13,440 per year.</li>
+                  <li><strong>Pricing:</strong> ?1,400 per month, or ?13,440 per year.</li>
                   <li><strong>The "Kill Switch":</strong> If a subscription expires and is not renewed, SolutionPRO Technologies reserves the right to immediately suspend the merchant's public storefront. The storefront will display an "Offline" notice until payment is cleared.</li>
                   <li>All subscription payments are non-refundable.</li>
                 </ul>
@@ -317,7 +317,7 @@ export default function LandingPage() {
         <div className="fixed inset-0 bg-black/70 z-[200] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 w-full max-w-3xl max-h-[85vh] overflow-y-auto relative animate-slide-in">
             <button onClick={() => setIsPrivacyOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2 bg-gray-50 rounded-full w-8 h-8 flex items-center justify-center font-bold cursor-pointer sticky-close">
-              ✕
+              ?
             </button>
             <h2 className="text-3xl font-black mb-2 text-gray-900">Privacy Policy</h2>
             <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-6 pb-4 border-b border-gray-100">Last Updated: August 2026</p>
