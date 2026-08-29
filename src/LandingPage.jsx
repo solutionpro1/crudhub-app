@@ -9,7 +9,7 @@ export default function LandingPage() {
   const [isTermsOpen, setIsTermsOpen] = useState(false)
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false)
 
-  const [storeSlug, setStoreSlug] = useState('')
+  const [loginInput, setLoginInput] = useState('')
   const navigate = useNavigate()
 
   const [newStore, setNewStore] = useState({ business_name: '', slug: '', phone_number: '', pin_code: '' })
@@ -19,8 +19,10 @@ export default function LandingPage() {
 
   function handleLogin(e) {
     e.preventDefault()
-    if (storeSlug) {
-      navigate(`/${storeSlug.toLowerCase().trim()}/manage`)
+    if (loginInput) {
+      // Automatically convert whatever business name they type into the correct URL format
+      const formattedSlug = loginInput.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')
+      navigate(`/${formattedSlug}/manage`)
     }
   }
 
@@ -35,8 +37,15 @@ export default function LandingPage() {
 
   async function handleSignup(e) {
     e.preventDefault()
+    
     if (!agreedToTerms) {
       setSignupError('You must agree to the Terms & Conditions and Privacy Policy to proceed.')
+      return
+    }
+
+    // Strict validation to ensure the WhatsApp number includes the country code
+    if (!newStore.phone_number.startsWith('+')) {
+      setSignupError('WhatsApp number must start with a + and your country code (e.g., +234).')
       return
     }
     
@@ -74,6 +83,9 @@ export default function LandingPage() {
 
   const salesMessage = "Hello SolutionPRO! I would like to talk to sales about setting up my Crudhub store."
   const whatsappSalesUrl = `https://wa.me/2349028116376?text=${encodeURIComponent(salesMessage)}`
+  
+  const forgotPinMessage = "Hello Support, I forgot my Crudhub Merchant PIN. Can you help me recover it?"
+  const whatsappForgotPinUrl = `https://wa.me/2349028116376?text=${encodeURIComponent(forgotPinMessage)}`
 
   // The reusable Close Icon SVG
   const CloseIcon = () => (
@@ -171,16 +183,16 @@ export default function LandingPage() {
               <CloseIcon />
             </button>
             <h2 className="text-2xl font-bold mb-2">Merchant Login</h2>
-            <p className="text-gray-500 text-sm font-medium mb-6">Enter your store's URL name to access your dashboard.</p>
+            <p className="text-gray-500 text-sm font-medium mb-6">Enter your Business Name to access your dashboard.</p>
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <div className="flex items-center bg-gray-50 border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-black focus-within:border-transparent transition-shadow">
-                  <span className="pl-4 text-gray-400 font-medium text-sm">crudhub.com.ng/</span>
-                  <input required placeholder="your-store" className="w-full p-3 bg-transparent outline-none font-bold text-gray-900" value={storeSlug} onChange={e => setStoreSlug(e.target.value)} />
-                </div>
+                <input required placeholder="e.g. SolutionPRO Gadgets" className="w-full p-3 bg-gray-50 border rounded-xl outline-none font-bold text-gray-900 focus:ring-2 focus:ring-black focus:bg-white transition-shadow" value={loginInput} onChange={e => setLoginInput(e.target.value)} />
               </div>
               <button type="submit" className="w-full bg-black text-white font-bold py-3.5 rounded-xl hover:bg-gray-800 transition-colors shadow-md">Go to Portal</button>
             </form>
+            <div className="mt-5 text-center">
+              <a href={whatsappForgotPinUrl} target="_blank" rel="noreferrer" className="text-sm text-blue-600 hover:underline font-bold">Forgot your PIN? Contact Support</a>
+            </div>
           </div>
         </div>
       )}
@@ -206,7 +218,7 @@ export default function LandingPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-bold mb-1.5 text-gray-700">WhatsApp Number</label>
+                <label className="block text-sm font-bold mb-1.5 text-gray-700">WhatsApp Number (with Country Code)</label>
                 <input required type="tel" className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-black outline-none bg-gray-50 focus:bg-white" value={newStore.phone_number} onChange={e => setNewStore({...newStore, phone_number: e.target.value})} placeholder="+234..." />
               </div>
               <div>
@@ -379,4 +391,3 @@ export default function LandingPage() {
     </div>
   )
 }
-
