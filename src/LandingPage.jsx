@@ -9,21 +9,49 @@ export default function LandingPage() {
   const [isTermsOpen, setIsTermsOpen] = useState(false)
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false)
 
+  // Login States
   const [loginInput, setLoginInput] = useState('')
+  const [loginPin, setLoginPin] = useState('')
+  const [loginError, setLoginError] = useState('')
+  const [isLoggingIn, setIsLoggingIn] = useState(false)
+
   const navigate = useNavigate()
 
+  // Signup States
   const [newStore, setNewStore] = useState({ business_name: '', slug: '', phone_number: '', pin_code: '' })
+  const [countryCode, setCountryCode] = useState('+234')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [signupError, setSignupError] = useState('')
   const [agreedToTerms, setAgreedToTerms] = useState(false)
 
-  function handleLogin(e) {
+  async function handleLogin(e) {
     e.preventDefault()
-    if (loginInput) {
-      // Automatically convert whatever business name they type into the correct URL format
-      const formattedSlug = loginInput.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')
-      navigate(`/${formattedSlug}/manage`)
+    setIsLoggingIn(true)
+    setLoginError('')
+
+    const formattedSlug = loginInput.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')
+
+    // Fetch the merchant's PIN from Supabase
+    const { data, error } = await supabase
+      .from('merchants')
+      .select('pin_code')
+      .eq('slug', formattedSlug)
+      .single()
+
+    if (error || !data) {
+      setLoginError('Store not found. Please check your Business Name.')
+      setIsLoggingIn(false)
+      return
     }
+
+    if (data.pin_code !== loginPin) {
+      setLoginError('Incorrect PIN. Please try again.')
+      setIsLoggingIn(false)
+      return
+    }
+
+    // If PIN matches, redirect to their dashboard
+    navigate(`/${formattedSlug}/manage`)
   }
 
   function handleBusinessNameChange(e) {
@@ -42,12 +70,6 @@ export default function LandingPage() {
       setSignupError('You must agree to the Terms & Conditions and Privacy Policy to proceed.')
       return
     }
-
-    // Strict validation to ensure the WhatsApp number includes the country code
-    if (!newStore.phone_number.startsWith('+')) {
-      setSignupError('WhatsApp number must start with a + and your country code (e.g., +234).')
-      return
-    }
     
     setIsSubmitting(true)
     setSignupError('')
@@ -62,10 +84,13 @@ export default function LandingPage() {
     const trialEndDate = new Date()
     trialEndDate.setDate(trialEndDate.getDate() + 14)
 
+    // Combine country code and phone number (removing any leading zeros the user might type)
+    const fullPhoneNumber = countryCode + newStore.phone_number.replace(/^0+/, '')
+
     const { error } = await supabase.from('merchants').insert([{
       business_name: newStore.business_name,
       slug: newStore.slug,
-      phone_number: newStore.phone_number,
+      phone_number: fullPhoneNumber,
       pin_code: newStore.pin_code,
       theme_color: '#000000',
       status: 'active',
@@ -84,7 +109,7 @@ export default function LandingPage() {
   const salesMessage = "Hello SolutionPRO! I would like to talk to sales about setting up my Crudhub store."
   const whatsappSalesUrl = `https://wa.me/2349028116376?text=${encodeURIComponent(salesMessage)}`
   
-  const forgotPinMessage = "Hello Support, I forgot my Crudhub Merchant PIN. Can you help me recover it?"
+  const forgotPinMessage = "Hello Support, I forgot my Crudhub Merchant PIN or Business Name. Can you help me recover my account?"
   const whatsappForgotPinUrl = `https://wa.me/2349028116376?text=${encodeURIComponent(forgotPinMessage)}`
 
   // The reusable Close Icon SVG
@@ -183,15 +208,23 @@ export default function LandingPage() {
               <CloseIcon />
             </button>
             <h2 className="text-2xl font-bold mb-2">Merchant Login</h2>
-            <p className="text-gray-500 text-sm font-medium mb-6">Enter your Business Name to access your dashboard.</p>
+            <p className="text-gray-500 text-sm font-medium mb-6">Enter your credentials to manage your store.</p>
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
+                <label className="block text-sm font-bold mb-1.5 text-gray-700">Business Name</label>
                 <input required placeholder="e.g. SolutionPRO Gadgets" className="w-full p-3 bg-gray-50 border rounded-xl outline-none font-bold text-gray-900 focus:ring-2 focus:ring-black focus:bg-white transition-shadow" value={loginInput} onChange={e => setLoginInput(e.target.value)} />
               </div>
-              <button type="submit" className="w-full bg-black text-white font-bold py-3.5 rounded-xl hover:bg-gray-800 transition-colors shadow-md">Go to Portal</button>
+              <div>
+                <label className="block text-sm font-bold mb-1.5 text-gray-700">4-Digit PIN</label>
+                <input required type="password" maxLength="4" placeholder="????" className="w-full p-3 bg-gray-50 border rounded-xl outline-none font-bold tracking-widest text-gray-900 focus:ring-2 focus:ring-black focus:bg-white transition-shadow" value={loginPin} onChange={e => setLoginPin(e.target.value.replace(/\D/g, ''))} />
+              </div>
+              {loginError && <p className="text-red-500 text-sm font-bold">{loginError}</p>}
+              <button type="submit" disabled={isLoggingIn} className="w-full bg-black text-white font-bold py-3.5 mt-2 rounded-xl hover:bg-gray-800 transition-colors shadow-md disabled:bg-gray-400">
+                {isLoggingIn ? 'Verifying...' : 'Go to Portal'}
+              </button>
             </form>
-            <div className="mt-5 text-center">
-              <a href={whatsappForgotPinUrl} target="_blank" rel="noreferrer" className="text-sm text-blue-600 hover:underline font-bold">Forgot your PIN? Contact Support</a>
+            <div className="mt-6 text-center">
+              <a href={whatsappForgotPinUrl} target="_blank" rel="noreferrer" className="text-sm text-blue-600 hover:underline font-bold">Forgot PIN or Business Name?</a>
             </div>
           </div>
         </div>
@@ -218,8 +251,23 @@ export default function LandingPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-bold mb-1.5 text-gray-700">WhatsApp Number (with Country Code)</label>
-                <input required type="tel" className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-black outline-none bg-gray-50 focus:bg-white" value={newStore.phone_number} onChange={e => setNewStore({...newStore, phone_number: e.target.value})} placeholder="+234..." />
+                <label className="block text-sm font-bold mb-1.5 text-gray-700">WhatsApp Number</label>
+                <div className="flex bg-gray-50 border rounded-lg focus-within:ring-2 focus-within:ring-black focus-within:bg-white overflow-hidden">
+                  <select 
+                    className="bg-transparent pl-3 pr-2 py-3 text-gray-700 font-bold outline-none border-r border-gray-200 cursor-pointer"
+                    value={countryCode}
+                    onChange={e => setCountryCode(e.target.value)}
+                  >
+                    <option value="+234">???? +234</option>
+                    <option value="+233">???? +233</option>
+                    <option value="+254">???? +254</option>
+                    <option value="+221">???? +221</option>
+                    <option value="+27">???? +27</option>
+                    <option value="+44">???? +44</option>
+                    <option value="+1">???? +1</option>
+                  </select>
+                  <input required type="tel" className="w-full p-3 bg-transparent outline-none font-bold" value={newStore.phone_number} onChange={e => setNewStore({...newStore, phone_number: e.target.value.replace(/\D/g, '')})} placeholder="801 234 5678" />
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-bold mb-1.5 text-gray-700">Create a 4-Digit PIN</label>
