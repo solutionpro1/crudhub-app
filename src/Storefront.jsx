@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabase } from './supabaseClient'
 
@@ -12,7 +12,9 @@ export default function Storefront() {
   const [cart, setCart] = useState([])
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [customer, setCustomer] = useState({ name: '', address: '', notes: '' })
+  
+  // Added fulfillmentType (Delivery vs Pickup)
+  const [customer, setCustomer] = useState({ name: '', address: '', notes: '', fulfillmentType: 'delivery' })
 
   useEffect(() => { fetchStoreData() }, [storeSlug])
 
@@ -44,19 +46,45 @@ export default function Storefront() {
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0)
 
   async function handleCheckout(e) {
-    e.preventDefault(); setIsSubmitting(true);
-    const { error } = await supabase.from('orders').insert([{ merchant_id: merchant.id, customer_name: customer.name, customer_address: customer.address, customer_notes: customer.notes, items: cart, total_amount: cartTotal, status: 'Pending' }])
+    e.preventDefault(); 
+    setIsSubmitting(true);
+    
+    // Save to database
+    const { error } = await supabase.from('orders').insert([{ 
+      merchant_id: merchant.id, 
+      customer_name: customer.name, 
+      customer_address: customer.fulfillmentType === 'pickup' ? 'Store Pickup' : customer.address, 
+      customer_notes: customer.notes, 
+      items: cart, 
+      total_amount: cartTotal, 
+      status: 'Pending' 
+    }])
+    
     if (error) { alert('Error placing order. Please try again.'); setIsSubmitting(false); return; }
 
-    let orderText = `*New Order from ${customer.name}!* \n\n*Delivery Address:* ${customer.address}\n\n*Items Ordered:*\n`
-    cart.forEach(item => { orderText += `- ${item.quantity}x ${item.name} (₦${(item.price * item.quantity).toLocaleString()})\n` })
-    orderText += `\n*Total Amount:* ₦${cartTotal.toLocaleString()}\n`
+    const currency = merchant.currency || '₦';
+    
+    // Build the dynamic WhatsApp Message
+    let orderText = `*New Order from ${customer.name}!* \n\n`
+    
+    if (customer.fulfillmentType === 'delivery') {
+       orderText += `*Order Type:* 🚚 Delivery\n*Delivery Address:* ${customer.address}\n\n`
+    } else {
+       orderText += `*Order Type:* 🏬 Store Pickup\n\n`
+    }
+    
+    orderText += `*Items Ordered:*\n`
+    cart.forEach(item => { orderText += `- ${item.quantity}x ${item.name} (${currency}${(item.price * item.quantity).toLocaleString()})\n` })
+    orderText += `\n*Total Amount:* ${currency}${cartTotal.toLocaleString()}\n`
+    
     if (customer.notes) orderText += `\n*Customer Note:* ${customer.notes}`
 
     const cleanPhone = merchant.phone_number.replace(/\D/g, '')
     const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(orderText)}`
 
-    setCart([]); setIsCheckoutOpen(false); setIsSubmitting(false);
+    setCart([]); 
+    setIsCheckoutOpen(false); 
+    setIsSubmitting(false);
     window.open(whatsappUrl, '_blank')
   }
 
@@ -78,7 +106,8 @@ export default function Storefront() {
   }
 
   const themeColor = merchant.theme_color || '#000000'
-  const hasSocials = merchant.instagram_url || merchant.tiktok_url || merchant.facebook_url || merchant.x_url
+  const currency = merchant.currency || '₦'
+  const hasSocials = merchant.instagram_url || merchant.tiktok_url || merchant.facebook_url || merchant.x_url || merchant.linkedin_url
   const categories = ['All', ...new Set(products.map(p => p.category).filter(Boolean))]
   
   const displayedProducts = products.filter(p => {
@@ -119,7 +148,7 @@ export default function Storefront() {
               <div className="p-4 flex flex-col flex-1">
                 <h3 className="font-bold text-gray-900 text-lg">{product.name}</h3>
                 <span className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block">{product.category}</span>
-                <p className="font-black text-lg mt-auto mb-4" style={{ color: themeColor }}>₦{Number(product.price).toLocaleString()}</p>
+                <p className="font-black text-lg mt-auto mb-4" style={{ color: themeColor }}>{currency}{Number(product.price).toLocaleString()}</p>
                 <button onClick={() => addToCart(product)} className="w-full py-2.5 rounded-lg font-bold text-white transition-opacity hover:opacity-90 active:scale-95" style={{ backgroundColor: themeColor }}>Add to Cart</button>
               </div>
             </div>
@@ -133,10 +162,42 @@ export default function Storefront() {
           <div className="max-w-4xl mx-auto px-4 text-center">
             <h3 className="text-gray-900 font-bold mb-6 text-lg">Connect with {merchant.business_name}</h3>
             <div className="flex flex-wrap justify-center gap-4">
-              {merchant.instagram_url && <a href={merchant.instagram_url} target="_blank" rel="noreferrer" className="bg-gray-50 text-gray-700 hover:text-black border border-gray-200 hover:border-black px-6 py-3 rounded-full font-bold transition-colors text-sm shadow-sm">Instagram</a>}
-              {merchant.tiktok_url && <a href={merchant.tiktok_url} target="_blank" rel="noreferrer" className="bg-gray-50 text-gray-700 hover:text-black border border-gray-200 hover:border-black px-6 py-3 rounded-full font-bold transition-colors text-sm shadow-sm">TikTok</a>}
-              {merchant.facebook_url && <a href={merchant.facebook_url} target="_blank" rel="noreferrer" className="bg-gray-50 text-gray-700 hover:text-blue-600 border border-gray-200 hover:border-blue-600 px-6 py-3 rounded-full font-bold transition-colors text-sm shadow-sm">Facebook</a>}
-              {merchant.x_url && <a href={merchant.x_url} target="_blank" rel="noreferrer" className="bg-gray-50 text-gray-700 hover:text-black border border-gray-200 hover:border-black px-6 py-3 rounded-full font-bold transition-colors text-sm shadow-sm">X (Twitter)</a>}
+              
+              {merchant.instagram_url && (
+                <a href={merchant.instagram_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-gray-50 text-gray-700 hover:text-pink-600 border border-gray-200 hover:border-pink-600 px-5 py-2.5 rounded-full font-bold transition-colors text-sm shadow-sm">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                  Instagram
+                </a>
+              )}
+              
+              {merchant.tiktok_url && (
+                <a href={merchant.tiktok_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-gray-50 text-gray-700 hover:text-black border border-gray-200 hover:border-black px-5 py-2.5 rounded-full font-bold transition-colors text-sm shadow-sm">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/></svg>
+                  TikTok
+                </a>
+              )}
+              
+              {merchant.facebook_url && (
+                <a href={merchant.facebook_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-gray-50 text-gray-700 hover:text-blue-600 border border-gray-200 hover:border-blue-600 px-5 py-2.5 rounded-full font-bold transition-colors text-sm shadow-sm">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+                  Facebook
+                </a>
+              )}
+              
+              {merchant.x_url && (
+                <a href={merchant.x_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-gray-50 text-gray-700 hover:text-black border border-gray-200 hover:border-black px-5 py-2.5 rounded-full font-bold transition-colors text-sm shadow-sm">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="4" x2="20" y2="20"/><line x1="20" y1="4" x2="4" y2="20"/></svg>
+                  X (Twitter)
+                </a>
+              )}
+
+              {merchant.linkedin_url && (
+                <a href={merchant.linkedin_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-gray-50 text-gray-700 hover:text-blue-700 border border-gray-200 hover:border-blue-700 px-5 py-2.5 rounded-full font-bold transition-colors text-sm shadow-sm">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+                  LinkedIn
+                </a>
+              )}
+
             </div>
           </div>
         </footer>
@@ -153,7 +214,7 @@ export default function Storefront() {
       {cartCount > 0 && !isCheckoutOpen && (
         <div className="fixed bottom-6 left-0 right-0 px-4 z-40 flex justify-center pointer-events-none">
           <button onClick={() => setIsCheckoutOpen(true)} className="w-full max-w-md bg-black text-white px-6 py-4 rounded-2xl font-bold text-lg shadow-2xl flex justify-between items-center transform transition-transform hover:scale-[1.02] active:scale-95 pointer-events-auto">
-            <span className="bg-white text-black px-3 py-1 rounded-lg text-sm">{cartCount} items</span><span>View Cart</span><span>₦{cartTotal.toLocaleString()}</span>
+            <span className="bg-white text-black px-3 py-1 rounded-lg text-sm">{cartCount} items</span><span>View Cart</span><span>{currency}{cartTotal.toLocaleString()}</span>
           </button>
         </div>
       )}
@@ -168,23 +229,43 @@ export default function Storefront() {
             <div className="p-4 flex-1">
               {cart.map(item => (
                 <div key={item.id} className="flex justify-between items-center mb-4 pb-4 border-b">
-                  <div className="flex-1 pr-4"><h4 className="font-bold text-gray-800">{item.name}</h4><p className="text-sm text-gray-500">₦{Number(item.price).toLocaleString()} each</p></div>
+                  <div className="flex-1 pr-4"><h4 className="font-bold text-gray-800">{item.name}</h4><p className="text-sm text-gray-500">{currency}{Number(item.price).toLocaleString()} each</p></div>
                   <div className="flex items-center gap-3 bg-gray-100 rounded-lg p-1"><button onClick={() => updateQuantity(item.id, -1)} className="w-8 h-8 flex items-center justify-center font-bold text-lg bg-white rounded shadow-sm">-</button><span className="font-bold w-4 text-center">{item.quantity}</span><button onClick={() => updateQuantity(item.id, 1)} className="w-8 h-8 flex items-center justify-center font-bold text-lg bg-white rounded shadow-sm">+</button></div>
                 </div>
               ))}
               <div className="mt-6">
-                <h3 className="font-bold text-lg mb-4">Delivery Details</h3>
-                <form id="checkout-form" onSubmit={handleCheckout} className="space-y-4">
+                <h3 className="font-bold text-lg mb-4">Checkout Details</h3>
+                <form id="checkout-form" onSubmit={handleCheckout} className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Order Type</label>
+                    <div className="flex gap-3">
+                      <label className={`flex-1 flex items-center justify-center gap-2 p-3 border-2 rounded-xl cursor-pointer transition-colors font-bold ${customer.fulfillmentType === 'delivery' ? 'bg-gray-900 border-gray-900 text-white' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>
+                        <input type="radio" className="hidden" checked={customer.fulfillmentType === 'delivery'} onChange={() => setCustomer({...customer, fulfillmentType: 'delivery'})} />
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 18H3c-.6 0-1-.4-1-1V7c0-.6.4-1 1-1h10c.6 0 1 .4 1 1v11"/><path d="M14 9h4l4 4v4c0 .6-.4 1-1 1h-2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>
+                        Delivery
+                      </label>
+                      <label className={`flex-1 flex items-center justify-center gap-2 p-3 border-2 rounded-xl cursor-pointer transition-colors font-bold ${customer.fulfillmentType === 'pickup' ? 'bg-gray-900 border-gray-900 text-white' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>
+                        <input type="radio" className="hidden" checked={customer.fulfillmentType === 'pickup'} onChange={() => setCustomer({...customer, fulfillmentType: 'pickup', address: ''})} />
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        Store Pickup
+                      </label>
+                    </div>
+                  </div>
+
                   <div><label className="block text-sm font-bold text-gray-700 mb-1">Full Name</label><input required className="w-full border p-3 rounded-xl focus:ring-2 outline-none bg-gray-50 focus:bg-white transition-colors" value={customer.name} onChange={e => setCustomer({...customer, name: e.target.value})} placeholder="Jane Doe" /></div>
-                  <div><label className="block text-sm font-bold text-gray-700 mb-1">Delivery Address</label><textarea required className="w-full border p-3 rounded-xl focus:ring-2 outline-none bg-gray-50 focus:bg-white transition-colors h-20 resize-none" value={customer.address} onChange={e => setCustomer({...customer, address: e.target.value})} placeholder="123 Main Street..." /></div>
+                  
+                  {customer.fulfillmentType === 'delivery' && (
+                    <div><label className="block text-sm font-bold text-gray-700 mb-1">Delivery Address</label><textarea required className="w-full border p-3 rounded-xl focus:ring-2 outline-none bg-gray-50 focus:bg-white transition-colors h-20 resize-none" value={customer.address} onChange={e => setCustomer({...customer, address: e.target.value})} placeholder="123 Main Street..." /></div>
+                  )}
+                  
                   <div><label className="block text-sm font-bold text-gray-700 mb-1">Order Notes (Optional)</label><input className="w-full border p-3 rounded-xl focus:ring-2 outline-none bg-gray-50 focus:bg-white transition-colors" value={customer.notes} onChange={e => setCustomer({...customer, notes: e.target.value})} placeholder="Extra spicy, please!" /></div>
                 </form>
               </div>
             </div>
-            <div className="p-4 border-t bg-white sticky bottom-0">
-              <div className="flex justify-between items-center mb-4 text-lg"><span className="font-bold text-gray-600">Total to Pay</span><span className="font-black text-2xl text-gray-900">₦{cartTotal.toLocaleString()}</span></div>
+            <div className="p-4 border-t bg-white sticky bottom-0 z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+              <div className="flex justify-between items-center mb-4 text-lg"><span className="font-bold text-gray-600">Total to Pay</span><span className="font-black text-2xl text-gray-900">{currency}{cartTotal.toLocaleString()}</span></div>
               <button form="checkout-form" type="submit" disabled={isSubmitting} className="w-full text-white px-6 py-4 rounded-xl font-bold text-lg shadow-md transition-opacity hover:opacity-90 disabled:bg-gray-400 flex justify-center items-center gap-2" style={{ backgroundColor: themeColor }}>
-                {isSubmitting ? 'Processing...' : <><span className="flex items-center gap-2">Place Order via WhatsApp <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></span></>}
+                {isSubmitting ? 'Processing...' : <><span className="flex items-center gap-2">Order via WhatsApp <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></span></>}
               </button>
             </div>
           </div>
