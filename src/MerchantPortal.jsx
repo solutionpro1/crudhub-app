@@ -20,7 +20,6 @@ export default function MerchantPortal() {
   const [editingProductId, setEditingProductId] = useState(null)
   const [isProductUploading, setIsProductUploading] = useState(false)
   
-  // Notification State
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
 
   useEffect(() => { fetchMerchantDetails() }, [storeSlug])
@@ -68,7 +67,6 @@ export default function MerchantPortal() {
     e.preventDefault(); setIsUploading(true); let logo_url = editMerchant.logo_url;
     if (logoFile) { const uploadedUrl = await uploadFile(logoFile, `logos/${editMerchant.slug}`); if (uploadedUrl) logo_url = uploadedUrl; }
     
-    // Added currency to the database update
     const { error } = await supabase.from('merchants').update({ 
       theme_color: editMerchant.theme_color, 
       logo_url: logo_url, 
@@ -78,16 +76,18 @@ export default function MerchantPortal() {
       instagram_url: editMerchant.instagram_url,
       linkedin_url: editMerchant.linkedin_url,
       tiktok_url: editMerchant.tiktok_url, 
-      x_url: editMerchant.x_url 
+      x_url: editMerchant.x_url,
+      contact_email: editMerchant.contact_email,
+      physical_address: editMerchant.physical_address,
+      hero_text: editMerchant.hero_text,
+      hero_font: editMerchant.hero_font,
+      hero_text_color: editMerchant.hero_text_color,
+      delivery_enabled: editMerchant.delivery_enabled,
+      delivery_rate_per_km: editMerchant.delivery_rate_per_km
     }).eq('id', merchant.id)
     
-    if (!error) { 
-      alert('Store settings updated successfully!'); 
-      setMerchant({...editMerchant, logo_url}); 
-      setLogoFile(null); 
-    } else {
-      alert('Error: ' + error.message) 
-    }
+    if (!error) { alert('Store settings updated successfully!'); setMerchant({...editMerchant, logo_url}); setLogoFile(null); }
+    else alert('Error: ' + error.message) 
     setIsUploading(false)
   }
 
@@ -122,28 +122,14 @@ export default function MerchantPortal() {
   async function handleShareStore() {
     const storeUrl = `https://crudhub.com.ng/${merchant.slug}`;
     if (navigator.share) {
-      try {
-        await navigator.share({
-          title: merchant.business_name,
-          text: 'Check out our online store and place your order on WhatsApp!',
-          url: storeUrl,
-        });
-      } catch (err) {
-        console.log('Share canceled or not supported on this device.');
-      }
-    } else {
-      navigator.clipboard.writeText(storeUrl);
-      alert('Store link copied to clipboard!');
-    }
+      try { await navigator.share({ title: merchant.business_name, text: 'Check out our online store and place your order on WhatsApp!', url: storeUrl }); } 
+      catch (err) { console.log('Share canceled or not supported.'); }
+    } else { navigator.clipboard.writeText(storeUrl); alert('Store link copied to clipboard!'); }
   }
 
   async function handleClearNotification() {
     const { error } = await supabase.from('merchants').update({ admin_message: null }).eq('id', merchant.id)
-    if (!error) {
-      setMerchant({ ...merchant, admin_message: null })
-      setEditMerchant({ ...editMerchant, admin_message: null })
-      setIsNotificationsOpen(false)
-    }
+    if (!error) { setMerchant({ ...merchant, admin_message: null }); setEditMerchant({ ...editMerchant, admin_message: null }); setIsNotificationsOpen(false); }
   }
 
   if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-xl">Loading space...</div>
@@ -185,47 +171,23 @@ export default function MerchantPortal() {
           
           <div className="flex items-center gap-2 sm:gap-4">
             <div className="relative">
-              <button 
-                onClick={() => setIsNotificationsOpen(!isNotificationsOpen)} 
-                className={`p-2.5 rounded-full transition-colors relative ${isNotificationsOpen ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-100 hover:text-black'}`}
-              >
+              <button onClick={() => setIsNotificationsOpen(!isNotificationsOpen)} className={`p-2.5 rounded-full transition-colors relative ${isNotificationsOpen ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-100 hover:text-black'}`}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
                 {merchant.admin_message && <span className="absolute top-2 right-2.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>}
               </button>
-
               {isNotificationsOpen && (
                 <div className="absolute top-full right-0 mt-3 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden animate-slide-in">
-                  <div className="p-4 border-b border-gray-50 bg-gray-50/50 flex justify-between items-center">
-                    <h3 className="font-bold text-gray-900 flex items-center gap-2">
-                      Notifications {merchant.admin_message && <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">1 New</span>}
-                    </h3>
-                    {merchant.admin_message && <button onClick={handleClearNotification} className="text-xs text-blue-600 font-bold hover:underline">Mark as Read</button>}
-                  </div>
+                  <div className="p-4 border-b border-gray-50 bg-gray-50/50 flex justify-between items-center"><h3 className="font-bold text-gray-900 flex items-center gap-2">Notifications {merchant.admin_message && <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">1 New</span>}</h3>{merchant.admin_message && <button onClick={handleClearNotification} className="text-xs text-blue-600 font-bold hover:underline">Mark as Read</button>}</div>
                   <div className="p-3 max-h-96 overflow-y-auto">
                     {merchant.admin_message ? (
-                      <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100">
-                        <div className="flex items-start gap-3">
-                          <div className="mt-0.5 text-blue-600 bg-blue-100 p-1.5 rounded-lg">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 17H2a3 3 0 0 0 3-3V9a7 7 0 0 1 14 0v5a3 3 0 0 0 3 3zm-8.27 4a2 2 0 0 1-3.46 0"/></svg>
-                          </div>
-                          <div>
-                            <h4 className="text-sm font-bold text-gray-900 mb-1">SolutionPRO Alert</h4>
-                            <p className="text-sm text-gray-600 leading-relaxed font-medium">{merchant.admin_message}</p>
-                          </div>
-                        </div>
-                      </div>
+                      <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100"><div className="flex items-start gap-3"><div className="mt-0.5 text-blue-600 bg-blue-100 p-1.5 rounded-lg"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 17H2a3 3 0 0 0 3-3V9a7 7 0 0 1 14 0v5a3 3 0 0 0 3 3zm-8.27 4a2 2 0 0 1-3.46 0"/></svg></div><div><h4 className="text-sm font-bold text-gray-900 mb-1">SolutionPRO Alert</h4><p className="text-sm text-gray-600 leading-relaxed font-medium">{merchant.admin_message}</p></div></div></div>
                     ) : (
-                      <div className="py-10 text-center flex flex-col items-center justify-center">
-                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300 mb-3"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                        <p className="text-gray-400 font-bold text-sm">You are all caught up!</p>
-                        <p className="text-gray-400 font-medium text-xs mt-1">No new notifications.</p>
-                      </div>
+                      <div className="py-10 text-center flex flex-col items-center justify-center"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300 mb-3"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><p className="text-gray-400 font-bold text-sm">You are all caught up!</p><p className="text-gray-400 font-medium text-xs mt-1">No new notifications.</p></div>
                     )}
                   </div>
                 </div>
               )}
             </div>
-
             <button onClick={() => setIsAuthenticated(false)} className="text-gray-500 hover:text-red-600 font-bold text-sm bg-gray-50 px-4 py-2.5 rounded-xl border hover:bg-red-50 transition-colors">Lock</button>
           </div>
         </div>
@@ -234,37 +196,22 @@ export default function MerchantPortal() {
       {showWarning && (
         <div className={`max-w-6xl mx-auto px-6 mt-8 mb-2`}>
           <div className={`p-4 rounded-xl border-l-4 flex items-start gap-4 shadow-sm ${isExpired ? 'bg-red-50 border-red-500' : 'bg-orange-50 border-orange-500'}`}>
-            <div className={`mt-0.5 ${isExpired ? 'text-red-500' : 'text-orange-500'}`}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            </div>
+            <div className={`mt-0.5 ${isExpired ? 'text-red-500' : 'text-orange-500'}`}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
             <div>
-              <h3 className={`font-bold text-lg ${isExpired ? 'text-red-800' : 'text-orange-800'}`}>
-                {isExpired ? 'Subscription Expired' : 'Subscription Expiring Soon'}
-              </h3>
-              <p className={`font-medium mt-1 ${isExpired ? 'text-red-700' : 'text-orange-700'}`}>
-                {isExpired 
-                  ? `Your Crudhub subscription has expired. Please contact support to renew immediately and avoid your storefront going offline. (Monthly: ₦1,400 | Yearly: ₦13,440)` 
-                  : `Your Crudhub subscription expires in ${daysLeft === 0 ? 'less than 24 hours' : `${daysLeft} days`}. Please renew to keep your store online. (Monthly: ₦1,400 | Yearly: ₦13,440)`}
-              </p>
+              <h3 className={`font-bold text-lg ${isExpired ? 'text-red-800' : 'text-orange-800'}`}>{isExpired ? 'Subscription Expired' : 'Subscription Expiring Soon'}</h3>
+              <p className={`font-medium mt-1 ${isExpired ? 'text-red-700' : 'text-orange-700'}`}>{isExpired ? `Your Crudhub subscription has expired. Please contact support to renew immediately. (Monthly: ₦1,400 | Yearly: ₦13,440)` : `Your Crudhub subscription expires in ${daysLeft === 0 ? 'less than 24 hours' : `${daysLeft} days`}. Please renew to keep your store online. (Monthly: ₦1,400 | Yearly: ₦13,440)`}</p>
             </div>
           </div>
         </div>
       )}
 
       <div className={`max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-8 ${showWarning ? 'mt-6' : 'mt-8'}`}>
-        
         <div className="space-y-6">
           <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Your Store Link</p>
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm font-bold text-gray-800 break-all mb-4">
-              crudhub.com.ng/{merchant.slug}
-            </div>
-            <button onClick={handleShareStore} className="w-full bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 transition-transform active:scale-95 shadow-sm flex justify-center items-center gap-2">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-              Share Store
-            </button>
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm font-bold text-gray-800 break-all mb-4">crudhub.com.ng/{merchant.slug}</div>
+            <button onClick={handleShareStore} className="w-full bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 transition-transform active:scale-95 shadow-sm flex justify-center items-center gap-2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Share Store</button>
           </div>
-
           <div className="space-y-2">
             <button onClick={() => setActiveTab('orders')} className={`w-full text-left px-5 py-4 rounded-xl font-bold transition-colors ${activeTab === 'orders' ? 'bg-black text-white shadow-md' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'}`}><span className="flex items-center gap-2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg> Order History</span></button>
             <button onClick={() => setActiveTab('qr')} className={`w-full text-left px-5 py-4 rounded-xl font-bold transition-colors ${activeTab === 'qr' ? 'bg-black text-white shadow-md' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'}`}><span className="flex items-center gap-2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg> Store QR Code</span></button>
@@ -296,6 +243,7 @@ export default function MerchantPortal() {
               </div>
             </div>
           )}
+          
           {activeTab === 'qr' && (
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 text-center max-w-lg mx-auto">
               <h2 className="text-2xl font-bold text-gray-800 mb-2">Your Store QR Code</h2>
@@ -307,6 +255,7 @@ export default function MerchantPortal() {
               </div>
             </div>
           )}
+          
           {activeTab === 'catalog' && (
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
                <h2 className="text-xl font-bold text-gray-800 mb-6">Manage Your Menu</h2>
@@ -342,10 +291,12 @@ export default function MerchantPortal() {
                </div>
             </div>
           )}
+          
           {activeTab === 'settings' && (
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 max-w-2xl">
               <h2 className="text-xl font-bold text-gray-800 mb-6">Store Settings</h2>
               <form onSubmit={handleUpdateSettings} className="space-y-6">
+                
                 <div className="p-5 bg-gray-50 rounded-xl border border-gray-100 space-y-4">
                   <h3 className="font-bold text-gray-900 text-lg">Brand Identity & Localization</h3>
                   <div>
@@ -363,6 +314,52 @@ export default function MerchantPortal() {
                   <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Theme Color</label><input type="color" value={editMerchant.theme_color || '#000000'} onChange={e => setEditMerchant({...editMerchant, theme_color: e.target.value})} className="w-full h-12 rounded cursor-pointer border p-1 bg-white" /></div>
                   <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Business Logo</label>{editMerchant.logo_url && <img src={editMerchant.logo_url} alt="Logo" className="h-16 mb-2 rounded-lg border object-contain bg-white p-1" />}<input type="file" accept="image/*" onChange={e => setLogoFile(e.target.files[0])} className="w-full border p-2 rounded-lg text-sm bg-white" /></div>
                 </div>
+
+                {/* NEW: STOREFRONT HERO SECTION */}
+                <div className="p-5 bg-gray-50 rounded-xl border border-gray-100 space-y-4">
+                  <h3 className="font-bold text-gray-900 text-lg">Storefront Hero Section</h3>
+                  <p className="text-sm text-gray-500 mb-2">Display a beautiful welcome banner at the top of your public store.</p>
+                  <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Hero Text (Optional)</label><textarea placeholder="e.g. Welcome to the best fashion store in Lagos!" className="w-full border p-2.5 rounded-lg bg-white focus:ring-2 focus:ring-black outline-none text-sm h-20" value={editMerchant.hero_text || ''} onChange={e => setEditMerchant({...editMerchant, hero_text: e.target.value})} /></div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-bold mb-1.5 text-gray-700">Font Style</label>
+                      <select className="w-full border p-2.5 rounded-lg bg-white focus:ring-2 focus:ring-black outline-none text-sm cursor-pointer" value={editMerchant.hero_font || 'sans-serif'} onChange={e => setEditMerchant({...editMerchant, hero_font: e.target.value})}>
+                        <option value="sans-serif">Modern (Sans-Serif)</option>
+                        <option value="serif">Classic (Serif)</option>
+                        <option value="monospace">Code (Monospace)</option>
+                      </select>
+                    </div>
+                    <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Text Color</label><input type="color" value={editMerchant.hero_text_color || '#ffffff'} onChange={e => setEditMerchant({...editMerchant, hero_text_color: e.target.value})} className="w-full h-11 rounded cursor-pointer border p-1 bg-white" /></div>
+                  </div>
+                </div>
+
+                {/* NEW: CONTACT & LOCATION */}
+                <div className="p-5 bg-gray-50 rounded-xl border border-gray-100 space-y-4">
+                  <h3 className="font-bold text-gray-900 text-lg">Contact & Location</h3>
+                  <p className="text-sm text-gray-500 mb-2">This information will appear in your storefront's footer.</p>
+                  <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Business Email</label><input type="email" placeholder="contact@yourstore.com" className="w-full border p-2.5 rounded-lg text-sm bg-white focus:ring-2 focus:ring-black outline-none" value={editMerchant.contact_email || ''} onChange={e => setEditMerchant({...editMerchant, contact_email: e.target.value})} /></div>
+                  <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Physical Address</label><textarea placeholder="123 Main Street, City..." className="w-full border p-2.5 rounded-lg bg-white focus:ring-2 focus:ring-black outline-none text-sm h-16" value={editMerchant.physical_address || ''} onChange={e => setEditMerchant({...editMerchant, physical_address: e.target.value})} /></div>
+                </div>
+
+                {/* NEW: SMART DELIVERY ENGINE */}
+                <div className="p-5 bg-gray-50 rounded-xl border border-gray-100 space-y-4">
+                  <h3 className="font-bold text-gray-900 text-lg">Smart Delivery Engine</h3>
+                  <p className="text-sm text-gray-500 mb-2">Automatically calculate delivery fees at checkout based on the customer's location.</p>
+                  
+                  <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer bg-white hover:bg-gray-50 transition-colors">
+                    <input type="checkbox" className="w-5 h-5 accent-black cursor-pointer" checked={editMerchant.delivery_enabled || false} onChange={e => setEditMerchant({...editMerchant, delivery_enabled: e.target.checked})} />
+                    <span className="font-bold text-gray-800">Enable Smart Distance Calculation</span>
+                  </label>
+
+                  {editMerchant.delivery_enabled && (
+                    <div className="animate-slide-in">
+                      <label className="block text-sm font-bold mb-1.5 text-gray-700 mt-4">Delivery Rate per Kilometer ({currency})</label>
+                      <input type="number" placeholder="e.g. 500" className="w-full border p-2.5 rounded-lg text-sm bg-white focus:ring-2 focus:ring-black outline-none" value={editMerchant.delivery_rate_per_km || ''} onChange={e => setEditMerchant({...editMerchant, delivery_rate_per_km: e.target.value})} />
+                      <p className="text-xs text-gray-500 mt-2 font-medium">When customers pin their location, we will multiply the total KM distance by this rate to calculate their final delivery fee.</p>
+                    </div>
+                  )}
+                </div>
+
                 <div className="p-5 bg-gray-50 rounded-xl border border-gray-100 space-y-4">
                   <h3 className="font-bold text-gray-900 text-lg">Social Links</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -373,10 +370,12 @@ export default function MerchantPortal() {
                     <div className="md:col-span-2"><label className="block text-sm font-bold mb-1.5 text-gray-700">LinkedIn URL</label><input placeholder="https://linkedin.com/company/..." className="w-full border p-2.5 rounded-lg text-sm bg-white focus:ring-2 focus:ring-black outline-none" value={editMerchant.linkedin_url || ''} onChange={e => setEditMerchant({...editMerchant, linkedin_url: e.target.value})} /></div>
                   </div>
                 </div>
+
                 <div className="p-5 bg-gray-50 rounded-xl border border-gray-100 space-y-4">
                   <h3 className="font-bold text-gray-900 text-lg">Security</h3>
                   <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Manager PIN</label><input required maxLength="4" type="password" placeholder="1234" className="w-full border p-2.5 rounded-lg bg-white focus:ring-2 focus:ring-black outline-none" value={editMerchant.pin_code || ''} onChange={e => setEditMerchant({...editMerchant, pin_code: e.target.value})} /><p className="text-xs text-gray-500 mt-1">If you change this, you will need to use the new PIN the next time you log in.</p></div>
                 </div>
+
                 <button type="submit" disabled={isUploading} className="bg-black text-white px-6 py-4 rounded-xl font-bold w-full text-lg shadow-md hover:bg-gray-800 transition-colors disabled:bg-gray-400">{isUploading ? 'Saving Settings...' : 'Save All Settings'}</button>
               </form>
             </div>
