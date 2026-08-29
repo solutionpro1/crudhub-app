@@ -24,6 +24,41 @@ export default function LandingPage() {
   const [signupError, setSignupError] = useState('')
   const [agreedToTerms, setAgreedToTerms] = useState(false)
 
+  // Comprehensive Global Country Codes (Text based to prevent encoding errors)
+  const countryList = [
+    { code: "+93", name: "AF" }, { code: "+355", name: "AL" }, { code: "+213", name: "DZ" }, { code: "+376", name: "AD" },
+    { code: "+244", name: "AO" }, { code: "+54", name: "AR" }, { code: "+61", name: "AU" }, { code: "+43", name: "AT" },
+    { code: "+973", name: "BH" }, { code: "+880", name: "BD" }, { code: "+375", name: "BY" }, { code: "+32", name: "BE" },
+    { code: "+229", name: "BJ" }, { code: "+55", name: "BR" }, { code: "+359", name: "BG" }, { code: "+226", name: "BF" },
+    { code: "+257", name: "BI" }, { code: "+855", name: "KH" }, { code: "+237", name: "CM" }, { code: "+1", name: "CA/US" },
+    { code: "+238", name: "CV" }, { code: "+236", name: "CF" }, { code: "+235", name: "TD" }, { code: "+56", name: "CL" },
+    { code: "+86", name: "CN" }, { code: "+57", name: "CO" }, { code: "+242", name: "CG" }, { code: "+243", name: "CD" },
+    { code: "+225", name: "CI" }, { code: "+385", name: "HR" }, { code: "+53", name: "CU" }, { code: "+357", name: "CY" },
+    { code: "+420", name: "CZ" }, { code: "+45", name: "DK" }, { code: "+253", name: "DJ" }, { code: "+20", name: "EG" },
+    { code: "+240", name: "GQ" }, { code: "+291", name: "ER" }, { code: "+372", name: "EE" }, { code: "+251", name: "ET" },
+    { code: "+358", name: "FI" }, { code: "+33", name: "FR" }, { code: "+241", name: "GA" }, { code: "+220", name: "GM" },
+    { code: "+995", name: "GE" }, { code: "+49", name: "DE" }, { code: "+233", name: "GH" }, { code: "+30", name: "GR" },
+    { code: "+224", name: "GN" }, { code: "+245", name: "GW" }, { code: "+509", name: "HT" }, { code: "+504", name: "HN" },
+    { code: "+36", name: "HU" }, { code: "+354", name: "IS" }, { code: "+91", name: "IN" }, { code: "+62", name: "ID" },
+    { code: "+98", name: "IR" }, { code: "+964", name: "IQ" }, { code: "+353", name: "IE" }, { code: "+972", name: "IL" },
+    { code: "+39", name: "IT" }, { code: "+81", name: "JP" }, { code: "+962", name: "JO" }, { code: "+254", name: "KE" },
+    { code: "+82", name: "KR" }, { code: "+965", name: "KW" }, { code: "+961", name: "LB" }, { code: "+231", name: "LR" },
+    { code: "+218", name: "LY" }, { code: "+261", name: "MG" }, { code: "+265", name: "MW" }, { code: "+60", name: "MY" },
+    { code: "+223", name: "ML" }, { code: "+222", name: "MR" }, { code: "+230", name: "MU" }, { code: "+52", name: "MX" },
+    { code: "+212", name: "MA" }, { code: "+258", name: "MZ" }, { code: "+264", name: "NA" }, { code: "+31", name: "NL" },
+    { code: "+64", name: "NZ" }, { code: "+227", name: "NE" }, { code: "+234", name: "NG" }, { code: "+47", name: "NO" },
+    { code: "+92", name: "PK" }, { code: "+507", name: "PA" }, { code: "+595", name: "PY" }, { code: "+51", name: "PE" },
+    { code: "+63", name: "PH" }, { code: "+48", name: "PL" }, { code: "+351", name: "PT" }, { code: "+974", name: "QA" },
+    { code: "+40", name: "RO" }, { code: "+7", name: "RU" }, { code: "+250", name: "RW" }, { code: "+966", name: "SA" },
+    { code: "+221", name: "SN" }, { code: "+381", name: "RS" }, { code: "+232", name: "SL" }, { code: "+65", name: "SG" },
+    { code: "+27", name: "ZA" }, { code: "+34", name: "ES" }, { code: "+94", name: "LK" }, { code: "+249", name: "SD" },
+    { code: "+46", name: "SE" }, { code: "+41", name: "CH" }, { code: "+963", name: "SY" }, { code: "+886", name: "TW" },
+    { code: "+255", name: "TZ" }, { code: "+66", name: "TH" }, { code: "+228", name: "TG" }, { code: "+216", name: "TN" },
+    { code: "+90", name: "TR" }, { code: "+256", name: "UG" }, { code: "+380", name: "UA" }, { code: "+971", name: "AE" },
+    { code: "+44", name: "GB" }, { code: "+598", name: "UY" }, { code: "+998", name: "UZ" }, { code: "+58", name: "VE" },
+    { code: "+84", name: "VN" }, { code: "+967", name: "YE" }, { code: "+260", name: "ZM" }, { code: "+263", name: "ZW" }
+  ].sort((a, b) => a.name.localeCompare(b.name))
+
   async function handleLogin(e) {
     e.preventDefault()
     setIsLoggingIn(true)
@@ -31,7 +66,6 @@ export default function LandingPage() {
 
     const formattedSlug = loginInput.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')
 
-    // Fetch the merchant's PIN from Supabase
     const { data, error } = await supabase
       .from('merchants')
       .select('pin_code')
@@ -50,7 +84,6 @@ export default function LandingPage() {
       return
     }
 
-    // If PIN matches, redirect to their dashboard
     navigate(`/${formattedSlug}/manage`)
   }
 
@@ -84,7 +117,6 @@ export default function LandingPage() {
     const trialEndDate = new Date()
     trialEndDate.setDate(trialEndDate.getDate() + 14)
 
-    // Combine country code and phone number (removing any leading zeros the user might type)
     const fullPhoneNumber = countryCode + newStore.phone_number.replace(/^0+/, '')
 
     const { error } = await supabase.from('merchants').insert([{
@@ -112,7 +144,6 @@ export default function LandingPage() {
   const forgotPinMessage = "Hello Support, I forgot my Crudhub Merchant PIN or Business Name. Can you help me recover my account?"
   const whatsappForgotPinUrl = `https://wa.me/2349028116376?text=${encodeURIComponent(forgotPinMessage)}`
 
-  // The reusable Close Icon SVG
   const CloseIcon = () => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -212,11 +243,11 @@ export default function LandingPage() {
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
                 <label className="block text-sm font-bold mb-1.5 text-gray-700">Business Name</label>
-                <input required placeholder="e.g. SolutionPRO Gadgets" className="w-full p-3 bg-gray-50 border rounded-xl outline-none font-bold text-gray-900 focus:ring-2 focus:ring-black focus:bg-white transition-shadow" value={loginInput} onChange={e => setLoginInput(e.target.value)} />
+                <input required placeholder="" className="w-full p-3 bg-gray-50 border rounded-xl outline-none font-bold text-gray-900 focus:ring-2 focus:ring-black focus:bg-white transition-shadow" value={loginInput} onChange={e => setLoginInput(e.target.value)} />
               </div>
               <div>
                 <label className="block text-sm font-bold mb-1.5 text-gray-700">4-Digit PIN</label>
-                <input required type="password" maxLength="4" placeholder="????" className="w-full p-3 bg-gray-50 border rounded-xl outline-none font-bold tracking-widest text-gray-900 focus:ring-2 focus:ring-black focus:bg-white transition-shadow" value={loginPin} onChange={e => setLoginPin(e.target.value.replace(/\D/g, ''))} />
+                <input required type="password" maxLength="4" placeholder="••••" className="w-full p-3 bg-gray-50 border rounded-xl outline-none font-bold tracking-widest text-gray-900 focus:ring-2 focus:ring-black focus:bg-white transition-shadow" value={loginPin} onChange={e => setLoginPin(e.target.value.replace(/\D/g, ''))} />
               </div>
               {loginError && <p className="text-red-500 text-sm font-bold">{loginError}</p>}
               <button type="submit" disabled={isLoggingIn} className="w-full bg-black text-white font-bold py-3.5 mt-2 rounded-xl hover:bg-gray-800 transition-colors shadow-md disabled:bg-gray-400">
@@ -241,7 +272,7 @@ export default function LandingPage() {
             <form onSubmit={handleSignup} className="space-y-4">
               <div>
                 <label className="block text-sm font-bold mb-1.5 text-gray-700">Business Name</label>
-                <input required className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-black outline-none bg-gray-50 focus:bg-white" value={newStore.business_name} onChange={handleBusinessNameChange} placeholder="e.g., SolutionPRO Gadgets" />
+                <input required className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-black outline-none bg-gray-50 focus:bg-white" value={newStore.business_name} onChange={handleBusinessNameChange} placeholder="" />
               </div>
               <div>
                 <label className="block text-sm font-bold mb-1.5 text-gray-700">Store Link</label>
@@ -258,20 +289,19 @@ export default function LandingPage() {
                     value={countryCode}
                     onChange={e => setCountryCode(e.target.value)}
                   >
-                    <option value="+234">???? +234</option>
-                    <option value="+233">???? +233</option>
-                    <option value="+254">???? +254</option>
-                    <option value="+221">???? +221</option>
-                    <option value="+27">???? +27</option>
-                    <option value="+44">???? +44</option>
-                    <option value="+1">???? +1</option>
+                    <option value="+234">NG (+234)</option>
+                    {countryList.map((country, idx) => (
+                      <option key={idx} value={country.code}>
+                        {country.name} ({country.code})
+                      </option>
+                    ))}
                   </select>
-                  <input required type="tel" className="w-full p-3 bg-transparent outline-none font-bold" value={newStore.phone_number} onChange={e => setNewStore({...newStore, phone_number: e.target.value.replace(/\D/g, '')})} placeholder="801 234 5678" />
+                  <input required type="tel" className="w-full p-3 bg-transparent outline-none font-bold" value={newStore.phone_number} onChange={e => setNewStore({...newStore, phone_number: e.target.value.replace(/\D/g, '')})} placeholder="" />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-bold mb-1.5 text-gray-700">Create a 4-Digit PIN</label>
-                <input required type="password" maxLength="4" className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-black outline-none bg-gray-50 focus:bg-white tracking-widest font-mono" value={newStore.pin_code} onChange={e => setNewStore({...newStore, pin_code: e.target.value.replace(/\D/g, '')})} placeholder="1234" />
+                <input required type="password" maxLength="4" className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-black outline-none bg-gray-50 focus:bg-white tracking-widest font-mono" value={newStore.pin_code} onChange={e => setNewStore({...newStore, pin_code: e.target.value.replace(/\D/g, '')})} placeholder="••••" />
               </div>
               
               <div className="flex items-start gap-3 mt-4 bg-gray-50 p-3 rounded-lg border border-gray-100">
@@ -308,130 +338,6 @@ export default function LandingPage() {
                 {isSubmitting ? 'Creating Store...' : 'Launch Store Now'}
               </button>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* EXPANDED TERMS MODAL (SUBSCRIPTION HIDDEN) */}
-      {isTermsOpen && (
-        <div className="fixed inset-0 bg-black/70 z-[200] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 w-full max-w-3xl max-h-[85vh] overflow-y-auto relative animate-slide-in">
-            <button onClick={() => setIsTermsOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2 bg-gray-50 rounded-full w-8 h-8 flex items-center justify-center font-bold cursor-pointer sticky-close">
-              <CloseIcon />
-            </button>
-            <h2 className="text-3xl font-black mb-2 text-gray-900">Terms and Conditions</h2>
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-6 pb-4 border-b border-gray-100">Last Updated: August 2026</p>
-            
-            <div className="space-y-6 text-sm text-gray-700 leading-relaxed">
-              <div>
-                <h3 className="font-bold text-gray-900 text-base mb-2">1. Introduction and Agreement</h3>
-                <p>Welcome to Crudhub, a software-as-a-service (SaaS) platform operated and maintained by SolutionPRO Technologies. By checking the agreement box and launching a store, you (the "Merchant") enter into a binding agreement with SolutionPRO Technologies. If you do not agree to these terms, you may not use our services.</p>
-              </div>
-              
-              <div>
-                <h3 className="font-bold text-gray-900 text-base mb-2">2. Software Provider Status</h3>
-                <p>Crudhub is strictly a digital infrastructure provider. We supply the software that allows you to display a digital catalog and route customer orders directly to your WhatsApp number. We do not process payments, hold funds, manage logistics, deliver physical goods, or offer quality control. Every transaction is an independent contract between you and your end-consumer.</p>
-              </div>
-
-              <div>
-                <h3 className="font-bold text-gray-900 text-base mb-2">3. Account Registration & Security</h3>
-                <p>To use Crudhub, you must register a valid WhatsApp number and create a secure 4-digit PIN. You are entirely responsible for maintaining the confidentiality of this PIN and for any activity that occurs under your account. SolutionPRO Technologies will not be liable for any loss or damage arising from your failure to protect your login credentials.</p>
-              </div>
-
-              <div>
-                <h3 className="font-bold text-gray-900 text-base mb-2">4. Service Access and Modifications</h3>
-                <p>SolutionPRO Technologies currently provides Crudhub as a platform for registered merchants. We reserve the right to modify, update, suspend, or adjust the features and access requirements of the platform at our discretion. Merchants will be provided with reasonable notice regarding any future updates to our service structure or access policies.</p>
-              </div>
-
-              <div>
-                <h3 className="font-bold text-gray-900 text-base mb-2">5. Acceptable Use Policy (Prohibited Usage)</h3>
-                <p>You agree not to use the Crudhub platform to:</p>
-                <ul className="list-disc pl-5 mt-2 space-y-1">
-                  <li>Sell, advertise, or distribute illegal drugs, contraband, or unlicensed pharmaceuticals.</li>
-                  <li>Distribute counterfeit goods or violate intellectual property rights.</li>
-                  <li>Engage in fraudulent activities or deceive end-consumers.</li>
-                  <li>Spam or abuse the WhatsApp API integration.</li>
-                </ul>
-                <p className="mt-2">Violation of this policy will result in the immediate and permanent deletion of your account and data, without prior notice.</p>
-              </div>
-
-              <div>
-                <h3 className="font-bold text-gray-900 text-base mb-2">6. Limitation of Liability</h3>
-                <p>To the maximum extent permitted by law, SolutionPRO Technologies shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including loss of profits, data, or goodwill, resulting from (a) your access to or use of the platform; (b) any conduct or content of any third party on the platform; (c) any downtime, server failures, or WhatsApp API outages.</p>
-              </div>
-
-              <div>
-                <h3 className="font-bold text-gray-900 text-base mb-2">7. Governing Law</h3>
-                <p>These Terms shall be governed by and construed in accordance with the laws of the Federal Republic of Nigeria, specifically within the jurisdiction of Ogun State, without regard to its conflict of law provisions.</p>
-              </div>
-
-              <div>
-                <h3 className="font-bold text-gray-900 text-base mb-2">8. Contact Information</h3>
-                <p>For legal inquiries or support, please contact SolutionPRO Technologies at:</p>
-                <div className="mt-2 bg-gray-50 p-4 rounded-lg border border-gray-200">
-                  <p><strong>Address:</strong> 33A Olorunsogo Street, Sote, Ibafo, Ogun State, Nigeria</p>
-                  <p><strong>Phone:</strong> +234 902 811 6376</p>
-                  <p><strong>Email:</strong> realsolutionpro@outlook.com</p>
-                </div>
-              </div>
-            </div>
-            <div className="mt-8 pt-6 border-t border-gray-100">
-              <button onClick={() => setIsTermsOpen(false)} className="w-full bg-black text-white font-bold py-4 rounded-xl hover:bg-gray-800 transition-colors shadow-md">I Have Read & Understand</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* EXPANDED PRIVACY MODAL (SUBSCRIPTION HIDDEN) */}
-      {isPrivacyOpen && (
-        <div className="fixed inset-0 bg-black/70 z-[200] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 w-full max-w-3xl max-h-[85vh] overflow-y-auto relative animate-slide-in">
-            <button onClick={() => setIsPrivacyOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2 bg-gray-50 rounded-full w-8 h-8 flex items-center justify-center font-bold cursor-pointer sticky-close">
-              <CloseIcon />
-            </button>
-            <h2 className="text-3xl font-black mb-2 text-gray-900">Privacy Policy</h2>
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-6 pb-4 border-b border-gray-100">Last Updated: August 2026</p>
-            
-            <div className="space-y-6 text-sm text-gray-700 leading-relaxed">
-              <div>
-                <h3 className="font-bold text-gray-900 text-base mb-2">1. Information We Collect</h3>
-                <p>When you register for Crudhub as a Merchant, SolutionPRO Technologies collects essential business data. This includes your business name, a valid WhatsApp phone number, your digital catalog data (product names, descriptions, pricing, and images), and a secure 4-digit PIN generated by you for authentication purposes.</p>
-              </div>
-
-              <div>
-                <h3 className="font-bold text-gray-900 text-base mb-2">2. How We Use Your Data</h3>
-                <p>The data we collect is utilized strictly to provide and improve the Crudhub platform. Specifically, we use your data to:</p>
-                <ul className="list-disc pl-5 mt-2 space-y-1">
-                  <li>Generate and host your public-facing digital storefront.</li>
-                  <li>Authenticate your login sessions to the Merchant Portal.</li>
-                  <li>Format and route incoming customer orders directly to your provided WhatsApp number.</li>
-                  <li>Send automated system notifications and important platform updates.</li>
-                </ul>
-              </div>
-
-              <div>
-                <h3 className="font-bold text-gray-900 text-base mb-2">3. End-Consumer Data Processing</h3>
-                <p>When a customer places an order on your storefront, they input their name, delivery address, and order notes. <strong>Crudhub acts only as a Data Processor</strong> in this exchange; you (the Merchant) are the Data Controller. Crudhub temporarily processes this customer information solely to compile the WhatsApp message payload. We do not store end-consumer data for marketing, analytics, or resale.</p>
-              </div>
-
-              <div>
-                <h3 className="font-bold text-gray-900 text-base mb-2">4. Data Security & NDPR Compliance</h3>
-                <p>SolutionPRO Technologies is committed to adhering to standard data protection regulations, including the Nigeria Data Protection Regulation (NDPR). Our backend infrastructure (powered by Supabase) utilizes secure, encrypted cloud environments to protect your information against unauthorized access, alteration, disclosure, or destruction.</p>
-              </div>
-
-              <div>
-                <h3 className="font-bold text-gray-900 text-base mb-2">5. Data Sharing and Third Parties</h3>
-                <p><strong>We will never sell, rent, or trade your personal or business data to third parties.</strong> Data is only shared with our necessary cloud infrastructure providers (e.g., hosting servers and databases) required to keep the platform online.</p>
-              </div>
-
-              <div>
-                <h3 className="font-bold text-gray-900 text-base mb-2">6. Your Rights to Data Deletion</h3>
-                <p>You maintain full ownership of your catalog data. You have the right to request the complete modification or deletion of your account and all associated data from our servers. To initiate a permanent data deletion request, please contact our support team at <strong>realsolutionpro@outlook.com</strong>.</p>
-              </div>
-            </div>
-            <div className="mt-8 pt-6 border-t border-gray-100">
-              <button onClick={() => setIsPrivacyOpen(false)} className="w-full bg-black text-white font-bold py-4 rounded-xl hover:bg-gray-800 transition-colors shadow-md">I Have Read & Understand</button>
-            </div>
           </div>
         </div>
       )}
