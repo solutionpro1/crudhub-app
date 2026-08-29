@@ -16,6 +16,9 @@ export default function Admin() {
   const [newMerchant, setNewMerchant] = useState({ business_name: '', slug: '', phone_number: '', pin_code: '1234' })
   const [newProduct, setNewProduct] = useState({ name: '', description: '', price: '', category: '' })
 
+  const [globalBroadcastMessage, setGlobalBroadcastMessage] = useState('')
+  const [isBroadcasting, setIsBroadcasting] = useState(false)
+
   const [logoFile, setLogoFile] = useState(null)
   const [productImageFile, setProductImageFile] = useState(null)
   const [isUploading, setIsUploading] = useState(false)
@@ -137,6 +140,44 @@ export default function Admin() {
     }
   }
 
+  async function handleBroadcastToAll(e) {
+    e.preventDefault()
+    if (!globalBroadcastMessage.trim()) return
+    if (!window.confirm('Are you sure you want to send this broadcast message to ALL merchants?')) return
+
+    setIsBroadcasting(true)
+    const { error } = await supabase
+      .from('merchants')
+      .update({ admin_message: globalBroadcastMessage.trim() })
+      .not('id', 'is', null)
+
+    if (!error) {
+      alert('Broadcast message sent to all merchants successfully!')
+      setGlobalBroadcastMessage('')
+      fetchMerchants()
+    } else {
+      alert('Error broadcasting message: ' + error.message)
+    }
+    setIsBroadcasting(false)
+  }
+
+  async function handleClearAllBroadcasts() {
+    if (!window.confirm('Clear broadcast message from ALL merchants?')) return
+    setIsBroadcasting(true)
+    const { error } = await supabase
+      .from('merchants')
+      .update({ admin_message: null })
+      .not('id', 'is', null)
+
+    if (!error) {
+      alert('All broadcasts cleared successfully!')
+      fetchMerchants()
+    } else {
+      alert('Error clearing broadcasts: ' + error.message)
+    }
+    setIsBroadcasting(false)
+  }
+
   async function handleUpdateBrand(e) {
     e.preventDefault()
     setIsUploading(true)
@@ -155,6 +196,7 @@ export default function Admin() {
       admin_message: selectedMerchant.admin_message,
       facebook_url: selectedMerchant.facebook_url, 
       instagram_url: selectedMerchant.instagram_url,
+      linkedin_url: selectedMerchant.linkedin_url,
       tiktok_url: selectedMerchant.tiktok_url, 
       x_url: selectedMerchant.x_url
     }).eq('id', selectedMerchant.id)
@@ -263,6 +305,41 @@ export default function Admin() {
                     <span>Create New Store</span>
                  </button>
               </div>
+            </div>
+
+            {/* Platform Broadcast to All Merchants */}
+            <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
+              <div className="flex items-center gap-2 mb-2">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600"><path d="M22 17H2a3 3 0 0 0 3-3V9a7 7 0 0 1 14 0v5a3 3 0 0 0 3 3zm-8.27 4a2 2 0 0 1-3.46 0"/></svg>
+                <h2 className="text-lg font-bold text-gray-900">Broadcast Announcement to ALL Merchants</h2>
+              </div>
+              <p className="text-sm text-gray-500 mb-4 font-medium">Send a global banner message that instantly shows at the top of every merchant's dashboard.</p>
+              <form onSubmit={handleBroadcastToAll} className="space-y-3">
+                <textarea 
+                  required
+                  placeholder="Type a global message for all merchants (e.g. Scheduled maintenance tonight at 11 PM WAT)..." 
+                  className="w-full border p-3 rounded-xl bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-black min-h-[70px] text-sm font-medium"
+                  value={globalBroadcastMessage} 
+                  onChange={e => setGlobalBroadcastMessage(e.target.value)}
+                />
+                <div className="flex flex-wrap gap-3">
+                  <button 
+                    type="submit" 
+                    disabled={isBroadcasting} 
+                    className="bg-blue-600 text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm disabled:bg-gray-400"
+                  >
+                    {isBroadcasting ? 'Broadcasting...' : 'Send to All Merchants'}
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={handleClearAllBroadcasts} 
+                    disabled={isBroadcasting} 
+                    className="bg-gray-100 text-gray-700 px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-gray-200 border border-gray-300 transition-colors disabled:opacity-50"
+                  >
+                    Clear All Broadcasts
+                  </button>
+                </div>
+              </form>
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
@@ -401,8 +478,17 @@ export default function Admin() {
                     </div>
 
                     <div className="pt-2">
-                      <label className="block text-sm font-bold mb-1.5 text-gray-700">Admin Notification Banner</label>
-                      <textarea placeholder="Type a message to display on their dashboard..." className="w-full border p-2.5 rounded-lg bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-black min-h-[80px]" value={selectedMerchant.admin_message || ''} onChange={e => setSelectedMerchant({...selectedMerchant, admin_message: e.target.value})}></textarea>
+                      <label className="block text-sm font-bold mb-1.5 text-gray-700">Individual Merchant Message</label>
+                      <textarea placeholder="Type a specific message for this merchant only..." className="w-full border p-2.5 rounded-lg bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-black min-h-[70px] text-sm" value={selectedMerchant.admin_message || ''} onChange={e => setSelectedMerchant({...selectedMerchant, admin_message: e.target.value})}></textarea>
+                    </div>
+
+                    <div className="pt-4 border-t border-gray-100 space-y-3">
+                      <label className="block text-sm font-bold text-gray-700">Social Media Links</label>
+                      <input placeholder="Facebook URL (https://...)" className="w-full border p-2 rounded-lg bg-gray-50 focus:bg-white outline-none text-sm" value={selectedMerchant.facebook_url || ''} onChange={e => setSelectedMerchant({...selectedMerchant, facebook_url: e.target.value})} />
+                      <input placeholder="Instagram URL (https://...)" className="w-full border p-2 rounded-lg bg-gray-50 focus:bg-white outline-none text-sm" value={selectedMerchant.instagram_url || ''} onChange={e => setSelectedMerchant({...selectedMerchant, instagram_url: e.target.value})} />
+                      <input placeholder="LinkedIn URL (https://...)" className="w-full border p-2 rounded-lg bg-gray-50 focus:bg-white outline-none text-sm" value={selectedMerchant.linkedin_url || ''} onChange={e => setSelectedMerchant({...selectedMerchant, linkedin_url: e.target.value})} />
+                      <input placeholder="TikTok URL (https://...)" className="w-full border p-2 rounded-lg bg-gray-50 focus:bg-white outline-none text-sm" value={selectedMerchant.tiktok_url || ''} onChange={e => setSelectedMerchant({...selectedMerchant, tiktok_url: e.target.value})} />
+                      <input placeholder="X / Twitter URL (https://...)" className="w-full border p-2 rounded-lg bg-gray-50 focus:bg-white outline-none text-sm" value={selectedMerchant.x_url || ''} onChange={e => setSelectedMerchant({...selectedMerchant, x_url: e.target.value})} />
                     </div>
 
                     <div className="pt-2"><label className="block text-sm font-bold mb-1.5 text-gray-700">Theme Color</label><input type="color" value={selectedMerchant.theme_color || '#000000'} onChange={e => setSelectedMerchant({...selectedMerchant, theme_color: e.target.value})} className="w-full h-12 rounded cursor-pointer border p-1" /></div>
