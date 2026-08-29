@@ -19,6 +19,9 @@ export default function MerchantPortal() {
   const [productImageFile, setProductImageFile] = useState(null)
   const [editingProductId, setEditingProductId] = useState(null)
   const [isProductUploading, setIsProductUploading] = useState(false)
+  
+  // Notification State
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
 
   useEffect(() => { fetchMerchantDetails() }, [storeSlug])
 
@@ -107,7 +110,6 @@ export default function MerchantPortal() {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   }
 
-  // Native Share Feature
   async function handleShareStore() {
     const storeUrl = `https://crudhub.com.ng/${merchant.slug}`;
     if (navigator.share) {
@@ -123,6 +125,16 @@ export default function MerchantPortal() {
     } else {
       navigator.clipboard.writeText(storeUrl);
       alert('Store link copied to clipboard!');
+    }
+  }
+
+  // Merchant marks notification as read (clears it for them only)
+  async function handleClearNotification() {
+    const { error } = await supabase.from('merchants').update({ admin_message: null }).eq('id', merchant.id)
+    if (!error) {
+      setMerchant({ ...merchant, admin_message: null })
+      setEditMerchant({ ...editMerchant, admin_message: null })
+      setIsNotificationsOpen(false)
     }
   }
 
@@ -156,30 +168,65 @@ export default function MerchantPortal() {
 
   return (
     <div className="min-h-screen bg-gray-100 font-sans pb-20">
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm relative">
         <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            {merchant.logo_url && <img src={merchant.logo_url} alt="Logo" className="w-10 h-10 rounded-full object-cover border" />}
-            <h1 className="text-xl font-black text-gray-900">{merchant.business_name} Workspace</h1>
+          <div className="flex items-center gap-3 sm:gap-4">
+            {merchant.logo_url && <img src={merchant.logo_url} alt="Logo" className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover border hidden sm:block" />}
+            <h1 className="text-lg sm:text-xl font-black text-gray-900 truncate">{merchant.business_name}</h1>
           </div>
-          <button onClick={() => setIsAuthenticated(false)} className="text-gray-500 hover:text-red-600 font-bold text-sm bg-gray-50 px-4 py-2 rounded-lg border hover:bg-red-50 transition-colors">Lock Portal</button>
+          
+          <div className="flex items-center gap-2 sm:gap-4">
+            
+            {/* Notification Bell Hub */}
+            <div className="relative">
+              <button 
+                onClick={() => setIsNotificationsOpen(!isNotificationsOpen)} 
+                className={`p-2.5 rounded-full transition-colors relative ${isNotificationsOpen ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-100 hover:text-black'}`}
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                {merchant.admin_message && <span className="absolute top-2 right-2.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>}
+              </button>
+
+              {/* Dropdown Inbox */}
+              {isNotificationsOpen && (
+                <div className="absolute top-full right-0 mt-3 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden animate-slide-in">
+                  <div className="p-4 border-b border-gray-50 bg-gray-50/50 flex justify-between items-center">
+                    <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                      Notifications {merchant.admin_message && <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">1 New</span>}
+                    </h3>
+                    {merchant.admin_message && <button onClick={handleClearNotification} className="text-xs text-blue-600 font-bold hover:underline">Mark as Read</button>}
+                  </div>
+                  <div className="p-3 max-h-96 overflow-y-auto">
+                    {merchant.admin_message ? (
+                      <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100">
+                        <div className="flex items-start gap-3">
+                          <div className="mt-0.5 text-blue-600 bg-blue-100 p-1.5 rounded-lg">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 17H2a3 3 0 0 0 3-3V9a7 7 0 0 1 14 0v5a3 3 0 0 0 3 3zm-8.27 4a2 2 0 0 1-3.46 0"/></svg>
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-bold text-gray-900 mb-1">SolutionPRO Alert</h4>
+                            <p className="text-sm text-gray-600 leading-relaxed font-medium">{merchant.admin_message}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="py-10 text-center flex flex-col items-center justify-center">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300 mb-3"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                        <p className="text-gray-400 font-bold text-sm">You are all caught up!</p>
+                        <p className="text-gray-400 font-medium text-xs mt-1">No new notifications.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <button onClick={() => setIsAuthenticated(false)} className="text-gray-500 hover:text-red-600 font-bold text-sm bg-gray-50 px-4 py-2.5 rounded-xl border hover:bg-red-50 transition-colors">Lock</button>
+          </div>
         </div>
       </div>
 
-      {/* ADMIN BROADCAST BANNER */}
-      {merchant.admin_message && (
-        <div className="bg-blue-600 text-white shadow-md">
-          <div className="max-w-6xl mx-auto px-6 py-4 flex items-start gap-3">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5"><path d="M22 17H2a3 3 0 0 0 3-3V9a7 7 0 0 1 14 0v5a3 3 0 0 0 3 3zm-8.27 4a2 2 0 0 1-3.46 0"/></svg>
-            <div>
-              <h3 className="font-bold text-lg mb-0.5">Platform Announcement</h3>
-              <p className="font-medium text-blue-50 leading-relaxed text-sm">{merchant.admin_message}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* SUBSCRIPTION WARNING BANNER */}
+      {/* SUBSCRIPTION WARNING BANNER (KEPT VISIBLE AS IT IS URGENT) */}
       {showWarning && (
         <div className={`max-w-6xl mx-auto px-6 mt-8 mb-2`}>
           <div className={`p-4 rounded-xl border-l-4 flex items-start gap-4 shadow-sm ${isExpired ? 'bg-red-50 border-red-500' : 'bg-orange-50 border-orange-500'}`}>
@@ -200,10 +247,10 @@ export default function MerchantPortal() {
         </div>
       )}
 
-      <div className={`max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-8 ${showWarning || merchant.admin_message ? 'mt-6' : 'mt-8'}`}>
+      <div className={`max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-8 ${showWarning ? 'mt-6' : 'mt-8'}`}>
         
         <div className="space-y-6">
-          {/* NEW SHARE STORE COMPONENT */}
+          {/* SHARE STORE COMPONENT */}
           <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Your Store Link</p>
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm font-bold text-gray-800 break-all mb-4">
@@ -321,6 +368,7 @@ export default function MerchantPortal() {
           )}
         </div>
       </div>
+      <style dangerouslySetInnerHTML={{__html: `@keyframes slide-in { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } } .animate-slide-in { animation: slide-in 0.2s ease-out forwards; }`}} />
     </div>
   )
 }
