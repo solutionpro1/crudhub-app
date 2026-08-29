@@ -315,7 +315,7 @@ export default function MerchantPortal() {
                   <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Business Logo</label>{editMerchant.logo_url && <img src={editMerchant.logo_url} alt="Logo" className="h-16 mb-2 rounded-lg border object-contain bg-white p-1" />}<input type="file" accept="image/*" onChange={e => setLogoFile(e.target.files[0])} className="w-full border p-2 rounded-lg text-sm bg-white" /></div>
                 </div>
 
-                {/* NEW: STOREFRONT HERO SECTION */}
+                {/* STOREFRONT HERO SECTION */}
                 <div className="p-5 bg-gray-50 rounded-xl border border-gray-100 space-y-4">
                   <h3 className="font-bold text-gray-900 text-lg">Storefront Hero Section</h3>
                   <p className="text-sm text-gray-500 mb-2">Display a beautiful welcome banner at the top of your public store.</p>
@@ -333,7 +333,7 @@ export default function MerchantPortal() {
                   </div>
                 </div>
 
-                {/* NEW: CONTACT & LOCATION */}
+                {/* CONTACT & LOCATION */}
                 <div className="p-5 bg-gray-50 rounded-xl border border-gray-100 space-y-4">
                   <h3 className="font-bold text-gray-900 text-lg">Contact & Location</h3>
                   <p className="text-sm text-gray-500 mb-2">This information will appear in your storefront's footer.</p>
@@ -341,7 +341,7 @@ export default function MerchantPortal() {
                   <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Physical Address</label><textarea placeholder="123 Main Street, City..." className="w-full border p-2.5 rounded-lg bg-white focus:ring-2 focus:ring-black outline-none text-sm h-16" value={editMerchant.physical_address || ''} onChange={e => setEditMerchant({...editMerchant, physical_address: e.target.value})} /></div>
                 </div>
 
-                {/* NEW: SMART DELIVERY ENGINE */}
+                {/* SMART DELIVERY ENGINE */}
                 <div className="p-5 bg-gray-50 rounded-xl border border-gray-100 space-y-4">
                   <h3 className="font-bold text-gray-900 text-lg">Smart Delivery Engine</h3>
                   <p className="text-sm text-gray-500 mb-2">Automatically calculate delivery fees at checkout based on the customer's location.</p>
@@ -353,9 +353,9 @@ export default function MerchantPortal() {
 
                   {editMerchant.delivery_enabled && (
                     <div className="animate-slide-in">
-                      <label className="block text-sm font-bold mb-1.5 text-gray-700 mt-4">Delivery Rate per Kilometer ({currency})</label>
-                      <input type="number" placeholder="e.g. 500" className="w-full border p-2.5 rounded-lg text-sm bg-white focus:ring-2 focus:ring-black outline-none" value={editMerchant.delivery_rate_per_km || ''} onChange={e => setEditMerchant({...editMerchant, delivery_rate_per_km: e.target.value})} />
-                      <p className="text-xs text-gray-500 mt-2 font-medium">When customers pin their location, we will multiply the total KM distance by this rate to calculate their final delivery fee.</p>
+                      <label className="block text-sm font-bold mb-1.5 text-gray-700 mt-4">Delivery Rate per 3 Kilometers ({currency})</label>
+                      <input type="number" placeholder="e.g. 1500" className="w-full border p-2.5 rounded-lg text-sm bg-white focus:ring-2 focus:ring-black outline-none" value={editMerchant.delivery_rate_per_km || ''} onChange={e => setEditMerchant({...editMerchant, delivery_rate_per_km: e.target.value})} />
+                      <p className="text-xs text-gray-500 mt-2 font-medium">When customers pin their location, we will charge this rate for every block of 3 kilometers to calculate their final delivery fee.</p>
                     </div>
                   )}
                 </div>
