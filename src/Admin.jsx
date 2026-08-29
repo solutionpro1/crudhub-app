@@ -151,6 +151,8 @@ export default function Admin() {
       theme_color: selectedMerchant.theme_color, 
       logo_url: logo_url, 
       pin_code: selectedMerchant.pin_code,
+      currency: selectedMerchant.currency,
+      admin_message: selectedMerchant.admin_message,
       facebook_url: selectedMerchant.facebook_url, 
       instagram_url: selectedMerchant.instagram_url,
       tiktok_url: selectedMerchant.tiktok_url, 
@@ -194,6 +196,24 @@ export default function Admin() {
     const today = new Date();
     const diffTime = end - today;
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  }
+
+  async function handleShareStore() {
+    const storeUrl = `https://crudhub.com.ng/${selectedMerchant.slug}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: selectedMerchant.business_name,
+          text: 'Check out our online store and place your order on WhatsApp!',
+          url: storeUrl,
+        });
+      } catch (err) {
+        console.log('Share canceled or not supported on this device.');
+      }
+    } else {
+      navigator.clipboard.writeText(storeUrl);
+      alert('Store link copied to clipboard!');
+    }
   }
 
   if (authLoading) return <div className="min-h-screen flex items-center justify-center bg-gray-50 text-xl font-bold">Checking access...</div>
@@ -317,81 +337,121 @@ export default function Admin() {
         )}
 
         {activeView === 'manage' && selectedMerchant && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="space-y-6">
-              
-              <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
-                <h2 className="text-xl font-bold text-gray-800 mb-4">Subscription</h2>
-                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 mb-6">
-                  <div className="flex justify-between items-end mb-2"><span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Plan</span><span className="font-black text-gray-900 capitalize">{selectedMerchant.subscription_plan}</span></div>
-                  <div className="flex justify-between items-end mb-2"><span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Expires</span><span className="font-bold text-gray-900">{selectedMerchant.subscription_end_date ? new Date(selectedMerchant.subscription_end_date).toLocaleDateString() : 'N/A'}</span></div>
-                  <div className="flex justify-between items-end pt-2 border-t border-gray-200"><span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Time Left</span><span className={`font-bold px-2 py-0.5 rounded text-sm ${getDaysRemaining(selectedMerchant.subscription_end_date) <= 3 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>{getDaysRemaining(selectedMerchant.subscription_end_date)} Days</span></div>
-                </div>
-                <div className="space-y-3">
-                  <button onClick={() => handleRenewSubscription('monthly')} className="w-full bg-black text-white py-3 rounded-lg font-bold hover:bg-gray-800 transition-colors shadow-sm flex justify-between px-4"><span>Renew Monthly</span><span className="text-gray-300">?1,400</span></button>
-                  <button onClick={() => handleRenewSubscription('yearly')} className="w-full bg-white text-gray-900 border-2 border-gray-200 py-3 rounded-lg font-bold hover:bg-gray-50 transition-colors shadow-sm flex justify-between px-4"><span>Renew Yearly</span><span className="text-gray-500">?13,440</span></button>
+          <div className="space-y-6">
+            
+            {/* Massive Native Share Button */}
+            <button onClick={handleShareStore} className="w-full sm:w-auto bg-green-600 text-white px-8 py-4 rounded-xl font-bold hover:bg-green-700 transition-transform active:scale-95 shadow-md flex items-center justify-center gap-3 text-lg border-2 border-green-700">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+              Share Store Link
+            </button>
+
+            {/* Admin Broadcast Banner Display */}
+            {selectedMerchant.admin_message && (
+              <div className="bg-blue-50 border border-blue-200 text-blue-900 p-5 rounded-2xl shadow-sm flex gap-4 items-start">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5 text-blue-600"><path d="M22 17H2a3 3 0 0 0 3-3V9a7 7 0 0 1 14 0v5a3 3 0 0 0 3 3zm-8.27 4a2 2 0 0 1-3.46 0"/></svg>
+                <div>
+                  <h3 className="font-bold text-lg mb-1">Message from SolutionPRO</h3>
+                  <p className="text-sm font-medium leading-relaxed">{selectedMerchant.admin_message}</p>
                 </div>
               </div>
+            )}
 
-              <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
-                <h2 className="text-xl font-bold text-gray-800 mb-2">Platform Status</h2>
-                <p className="text-sm text-gray-500 mb-4">Toggle storefront access for this client.</p>
-                <div className={`p-4 rounded-xl border flex items-center justify-between ${selectedMerchant.status === 'suspended' ? 'bg-red-50 border-red-100' : 'bg-green-50 border-green-100'}`}>
-                  <span className={`font-bold ${selectedMerchant.status === 'suspended' ? 'text-red-800' : 'text-green-800'}`}>{selectedMerchant.status === 'suspended' ? 'Store is Offline' : 'Store is Active'}</span>
-                  <button onClick={() => handleToggleStatus(selectedMerchant)} className={`px-4 py-2 rounded-lg text-sm font-bold text-white shadow-sm transition-transform active:scale-95 ${selectedMerchant.status === 'suspended' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}>{selectedMerchant.status === 'suspended' ? 'Reactivate' : 'Suspend Store'}</button>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
-                <h2 className="text-xl font-bold text-gray-800 mb-4">Core Details & Brand</h2>
-                <form onSubmit={handleUpdateBrand} className="space-y-4">
-                  {/* NEW CORE FIELDS FOR SUPER ADMIN */}
-                  <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Business Name</label><input required className="w-full border p-2.5 rounded-lg bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-black" value={selectedMerchant.business_name || ''} onChange={e => setSelectedMerchant({...selectedMerchant, business_name: e.target.value})} /></div>
-                  <div><label className="block text-sm font-bold mb-1.5 text-gray-700">WhatsApp Number</label><input required type="tel" className="w-full border p-2.5 rounded-lg bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-black" value={selectedMerchant.phone_number || ''} onChange={e => setSelectedMerchant({...selectedMerchant, phone_number: e.target.value})} /></div>
-                  
-                  <div className="pt-4 border-t border-gray-100"><label className="block text-sm font-bold mb-1.5 text-gray-700">Theme Color</label><input type="color" value={selectedMerchant.theme_color || '#000000'} onChange={e => setSelectedMerchant({...selectedMerchant, theme_color: e.target.value})} className="w-full h-12 rounded cursor-pointer border p-1" /></div>
-                  <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Manager PIN</label><input required maxLength="4" className="w-full border p-2.5 rounded-lg bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-black" value={selectedMerchant.pin_code || ''} onChange={e => setSelectedMerchant({...selectedMerchant, pin_code: e.target.value})} /></div>
-                  <div>
-                    <label className="block text-sm font-bold mb-1.5 text-gray-700">Business Logo</label>
-                    {selectedMerchant.logo_url && <img src={selectedMerchant.logo_url} alt="Logo" className="h-16 mb-2 rounded-lg border object-contain bg-gray-50 p-1" />}
-                    <input type="file" accept="image/*" onChange={e => setLogoFile(e.target.files[0])} className="w-full border p-2 rounded-lg text-sm bg-gray-50" />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="space-y-6">
+                
+                <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
+                  <h2 className="text-xl font-bold text-gray-800 mb-4">Subscription</h2>
+                  <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 mb-6">
+                    <div className="flex justify-between items-end mb-2"><span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Plan</span><span className="font-black text-gray-900 capitalize">{selectedMerchant.subscription_plan}</span></div>
+                    <div className="flex justify-between items-end mb-2"><span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Expires</span><span className="font-bold text-gray-900">{selectedMerchant.subscription_end_date ? new Date(selectedMerchant.subscription_end_date).toLocaleDateString() : 'N/A'}</span></div>
+                    <div className="flex justify-between items-end pt-2 border-t border-gray-200"><span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Time Left</span><span className={`font-bold px-2 py-0.5 rounded text-sm ${getDaysRemaining(selectedMerchant.subscription_end_date) <= 3 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>{getDaysRemaining(selectedMerchant.subscription_end_date)} Days</span></div>
                   </div>
-                  <button type="submit" disabled={isUploading} className="bg-black text-white px-4 py-3 mt-4 rounded-xl font-bold w-full disabled:bg-gray-400 hover:bg-gray-800 transition-colors">
-                    {isUploading ? 'Saving...' : 'Save Settings'}
-                  </button>
-                </form>
-              </div>
-            </div>
-
-            <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm p-6 border border-gray-200 h-fit">
-              <h2 className="text-xl font-bold text-gray-800 mb-4">Manage Catalog</h2>
-              <form onSubmit={handleAddProduct} className="flex flex-col gap-3 mb-6 bg-gray-50 p-5 rounded-xl border border-gray-100">
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <input required placeholder="Item Name" className="border p-2.5 rounded-lg flex-1 outline-none focus:ring-2 focus:ring-black" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
-                  <input required type="number" placeholder="Price (?)" className="border p-2.5 rounded-lg sm:w-32 outline-none focus:ring-2 focus:ring-black" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} />
-                  <input required placeholder="Category" className="border p-2.5 rounded-lg sm:w-1/4 outline-none focus:ring-2 focus:ring-black" value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} />
+                  <div className="space-y-3">
+                    <button onClick={() => handleRenewSubscription('monthly')} className="w-full bg-black text-white py-3 rounded-lg font-bold hover:bg-gray-800 transition-colors shadow-sm flex justify-between px-4"><span>Renew Monthly</span><span className="text-gray-300">₦1,400</span></button>
+                    <button onClick={() => handleRenewSubscription('yearly')} className="w-full bg-white text-gray-900 border-2 border-gray-200 py-3 rounded-lg font-bold hover:bg-gray-50 transition-colors shadow-sm flex justify-between px-4"><span>Renew Yearly</span><span className="text-gray-500">₦13,440</span></button>
+                  </div>
                 </div>
-                <div className="flex flex-col sm:flex-row gap-3 items-center">
-                  <input id="product-image" type="file" accept="image/*" onChange={e => setProductImageFile(e.target.files[0])} className="border p-2 rounded-lg flex-1 text-sm bg-white w-full" />
-                  <button type="submit" disabled={isUploading} className="bg-green-600 text-white px-6 py-2.5 rounded-lg font-bold disabled:bg-gray-400 hover:bg-green-700 transition-colors w-full sm:w-auto whitespace-nowrap flex items-center justify-center gap-2">
-                    {isUploading ? 'Adding...' : <><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Item</>}
-                  </button>
-                </div>
-              </form>
 
-              <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
-                {products.map(p => (
-                  <div key={p.id} className="flex justify-between items-center p-4 border border-gray-100 rounded-xl bg-gray-50 hover:bg-white transition-colors">
-                    <div className="flex items-center gap-4">
-                      {p.image_url ? <img src={p.image_url} alt={p.name} className="w-14 h-14 object-cover rounded-lg border shadow-sm bg-white" /> : <div className="w-14 h-14 bg-gray-200 rounded-lg flex items-center justify-center text-xs text-gray-500 font-bold border">No Img</div>}
-                      <div>
-                        <h4 className="font-bold text-gray-900">{p.name}</h4>
-                        <p className="text-sm text-green-700 font-bold">?{Number(p.price).toLocaleString()}</p>
-                      </div>
+                <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
+                  <h2 className="text-xl font-bold text-gray-800 mb-2">Platform Status</h2>
+                  <p className="text-sm text-gray-500 mb-4">Toggle storefront access for this client.</p>
+                  <div className={`p-4 rounded-xl border flex items-center justify-between ${selectedMerchant.status === 'suspended' ? 'bg-red-50 border-red-100' : 'bg-green-50 border-green-100'}`}>
+                    <span className={`font-bold ${selectedMerchant.status === 'suspended' ? 'text-red-800' : 'text-green-800'}`}>{selectedMerchant.status === 'suspended' ? 'Store is Offline' : 'Store is Active'}</span>
+                    <button onClick={() => handleToggleStatus(selectedMerchant)} className={`px-4 py-2 rounded-lg text-sm font-bold text-white shadow-sm transition-transform active:scale-95 ${selectedMerchant.status === 'suspended' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}>{selectedMerchant.status === 'suspended' ? 'Reactivate' : 'Suspend Store'}</button>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
+                  <h2 className="text-xl font-bold text-gray-800 mb-4">Core Details & Brand</h2>
+                  <form onSubmit={handleUpdateBrand} className="space-y-4">
+                    <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Business Name</label><input required className="w-full border p-2.5 rounded-lg bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-black" value={selectedMerchant.business_name || ''} onChange={e => setSelectedMerchant({...selectedMerchant, business_name: e.target.value})} /></div>
+                    <div><label className="block text-sm font-bold mb-1.5 text-gray-700">WhatsApp Number</label><input required type="tel" className="w-full border p-2.5 rounded-lg bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-black" value={selectedMerchant.phone_number || ''} onChange={e => setSelectedMerchant({...selectedMerchant, phone_number: e.target.value})} /></div>
+                    
+                    <div className="pt-4 border-t border-gray-100">
+                      <label className="block text-sm font-bold mb-1.5 text-gray-700">Store Currency</label>
+                      <select className="w-full border p-2.5 rounded-lg bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-black cursor-pointer font-bold" value={selectedMerchant.currency || '₦'} onChange={e => setSelectedMerchant({...selectedMerchant, currency: e.target.value})}>
+                        <option value="₦">Naira (₦)</option>
+                        <option value="$">Dollars ($)</option>
+                        <option value="€">Euros (€)</option>
+                        <option value="£">Pounds (£)</option>
+                        <option value="GH₵">Cedis (GH₵)</option>
+                        <option value="¥">Yuan (¥)</option>
+                        <option value="FG">Francs (FG)</option>
+                      </select>
                     </div>
-                    <button onClick={() => handleDeleteProduct(p.id)} className="text-red-500 font-bold hover:bg-red-50 px-3 py-1.5 rounded-lg text-sm transition-colors border border-transparent hover:border-red-200">Delete</button>
+
+                    <div className="pt-2">
+                      <label className="block text-sm font-bold mb-1.5 text-gray-700">Admin Notification Banner</label>
+                      <textarea placeholder="Type a message to display on their dashboard..." className="w-full border p-2.5 rounded-lg bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-black min-h-[80px]" value={selectedMerchant.admin_message || ''} onChange={e => setSelectedMerchant({...selectedMerchant, admin_message: e.target.value})}></textarea>
+                    </div>
+
+                    <div className="pt-2"><label className="block text-sm font-bold mb-1.5 text-gray-700">Theme Color</label><input type="color" value={selectedMerchant.theme_color || '#000000'} onChange={e => setSelectedMerchant({...selectedMerchant, theme_color: e.target.value})} className="w-full h-12 rounded cursor-pointer border p-1" /></div>
+                    <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Manager PIN</label><input required maxLength="4" className="w-full border p-2.5 rounded-lg bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-black" value={selectedMerchant.pin_code || ''} onChange={e => setSelectedMerchant({...selectedMerchant, pin_code: e.target.value})} /></div>
+                    <div>
+                      <label className="block text-sm font-bold mb-1.5 text-gray-700">Business Logo</label>
+                      {selectedMerchant.logo_url && <img src={selectedMerchant.logo_url} alt="Logo" className="h-16 mb-2 rounded-lg border object-contain bg-gray-50 p-1" />}
+                      <input type="file" accept="image/*" onChange={e => setLogoFile(e.target.files[0])} className="w-full border p-2 rounded-lg text-sm bg-gray-50" />
+                    </div>
+                    <button type="submit" disabled={isUploading} className="bg-black text-white px-4 py-3 mt-4 rounded-xl font-bold w-full disabled:bg-gray-400 hover:bg-gray-800 transition-colors">
+                      {isUploading ? 'Saving...' : 'Save Settings'}
+                    </button>
+                  </form>
+                </div>
+              </div>
+
+              <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm p-6 border border-gray-200 h-fit">
+                <h2 className="text-xl font-bold text-gray-800 mb-4">Manage Catalog</h2>
+                <form onSubmit={handleAddProduct} className="flex flex-col gap-3 mb-6 bg-gray-50 p-5 rounded-xl border border-gray-100">
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <input required placeholder="Item Name" className="border p-2.5 rounded-lg flex-1 outline-none focus:ring-2 focus:ring-black" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
+                    <div className="flex items-center bg-white border rounded-lg focus-within:ring-2 focus-within:ring-black sm:w-32 overflow-hidden">
+                       <span className="pl-3 font-bold text-gray-500">{selectedMerchant.currency || '₦'}</span>
+                       <input required type="number" placeholder="Price" className="p-2.5 w-full outline-none bg-transparent" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} />
+                    </div>
+                    <input required placeholder="Category" className="border p-2.5 rounded-lg sm:w-1/4 outline-none focus:ring-2 focus:ring-black" value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} />
                   </div>
-                ))}
+                  <div className="flex flex-col sm:flex-row gap-3 items-center">
+                    <input id="product-image" type="file" accept="image/*" onChange={e => setProductImageFile(e.target.files[0])} className="border p-2 rounded-lg flex-1 text-sm bg-white w-full" />
+                    <button type="submit" disabled={isUploading} className="bg-green-600 text-white px-6 py-2.5 rounded-lg font-bold disabled:bg-gray-400 hover:bg-green-700 transition-colors w-full sm:w-auto whitespace-nowrap flex items-center justify-center gap-2">
+                      {isUploading ? 'Adding...' : <><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Item</>}
+                    </button>
+                  </div>
+                </form>
+
+                <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+                  {products.map(p => (
+                    <div key={p.id} className="flex justify-between items-center p-4 border border-gray-100 rounded-xl bg-gray-50 hover:bg-white transition-colors">
+                      <div className="flex items-center gap-4">
+                        {p.image_url ? <img src={p.image_url} alt={p.name} className="w-14 h-14 object-cover rounded-lg border shadow-sm bg-white" /> : <div className="w-14 h-14 bg-gray-200 rounded-lg flex items-center justify-center text-xs text-gray-500 font-bold border">No Img</div>}
+                        <div>
+                          <h4 className="font-bold text-gray-900">{p.name}</h4>
+                          <p className="text-sm text-green-700 font-bold">{selectedMerchant.currency || '₦'}{Number(p.price).toLocaleString()}</p>
+                        </div>
+                      </div>
+                      <button onClick={() => handleDeleteProduct(p.id)} className="text-red-500 font-bold hover:bg-red-50 px-3 py-1.5 rounded-lg text-sm transition-colors border border-transparent hover:border-red-200">Delete</button>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
