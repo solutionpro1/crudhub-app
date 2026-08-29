@@ -67,18 +67,27 @@ export default function MerchantPortal() {
   async function handleUpdateSettings(e) {
     e.preventDefault(); setIsUploading(true); let logo_url = editMerchant.logo_url;
     if (logoFile) { const uploadedUrl = await uploadFile(logoFile, `logos/${editMerchant.slug}`); if (uploadedUrl) logo_url = uploadedUrl; }
+    
+    // Added currency to the database update
     const { error } = await supabase.from('merchants').update({ 
       theme_color: editMerchant.theme_color, 
       logo_url: logo_url, 
       pin_code: editMerchant.pin_code, 
+      currency: editMerchant.currency,
       facebook_url: editMerchant.facebook_url, 
       instagram_url: editMerchant.instagram_url,
       linkedin_url: editMerchant.linkedin_url,
       tiktok_url: editMerchant.tiktok_url, 
       x_url: editMerchant.x_url 
     }).eq('id', merchant.id)
-    if (!error) { alert('Store settings updated successfully!'); setMerchant({...editMerchant, logo_url}); setLogoFile(null); }
-    else alert('Error: ' + error.message) 
+    
+    if (!error) { 
+      alert('Store settings updated successfully!'); 
+      setMerchant({...editMerchant, logo_url}); 
+      setLogoFile(null); 
+    } else {
+      alert('Error: ' + error.message) 
+    }
     setIsUploading(false)
   }
 
@@ -128,7 +137,6 @@ export default function MerchantPortal() {
     }
   }
 
-  // Merchant marks notification as read (clears it for them only)
   async function handleClearNotification() {
     const { error } = await supabase.from('merchants').update({ admin_message: null }).eq('id', merchant.id)
     if (!error) {
@@ -176,8 +184,6 @@ export default function MerchantPortal() {
           </div>
           
           <div className="flex items-center gap-2 sm:gap-4">
-            
-            {/* Notification Bell Hub */}
             <div className="relative">
               <button 
                 onClick={() => setIsNotificationsOpen(!isNotificationsOpen)} 
@@ -187,7 +193,6 @@ export default function MerchantPortal() {
                 {merchant.admin_message && <span className="absolute top-2 right-2.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>}
               </button>
 
-              {/* Dropdown Inbox */}
               {isNotificationsOpen && (
                 <div className="absolute top-full right-0 mt-3 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden animate-slide-in">
                   <div className="p-4 border-b border-gray-50 bg-gray-50/50 flex justify-between items-center">
@@ -226,7 +231,6 @@ export default function MerchantPortal() {
         </div>
       </div>
 
-      {/* SUBSCRIPTION WARNING BANNER (KEPT VISIBLE AS IT IS URGENT) */}
       {showWarning && (
         <div className={`max-w-6xl mx-auto px-6 mt-8 mb-2`}>
           <div className={`p-4 rounded-xl border-l-4 flex items-start gap-4 shadow-sm ${isExpired ? 'bg-red-50 border-red-500' : 'bg-orange-50 border-orange-500'}`}>
@@ -250,7 +254,6 @@ export default function MerchantPortal() {
       <div className={`max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-8 ${showWarning ? 'mt-6' : 'mt-8'}`}>
         
         <div className="space-y-6">
-          {/* SHARE STORE COMPONENT */}
           <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Your Store Link</p>
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm font-bold text-gray-800 break-all mb-4">
@@ -344,8 +347,20 @@ export default function MerchantPortal() {
               <h2 className="text-xl font-bold text-gray-800 mb-6">Store Settings</h2>
               <form onSubmit={handleUpdateSettings} className="space-y-6">
                 <div className="p-5 bg-gray-50 rounded-xl border border-gray-100 space-y-4">
-                  <h3 className="font-bold text-gray-900 text-lg">Brand Identity</h3>
-                  <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Theme Color</label><input type="color" value={editMerchant.theme_color || '#000000'} onChange={e => setEditMerchant({...editMerchant, theme_color: e.target.value})} className="w-full h-12 rounded cursor-pointer border p-1" /></div>
+                  <h3 className="font-bold text-gray-900 text-lg">Brand Identity & Localization</h3>
+                  <div>
+                    <label className="block text-sm font-bold mb-1.5 text-gray-700">Store Currency</label>
+                    <select className="w-full border p-2.5 rounded-lg bg-white focus:ring-2 focus:ring-black outline-none font-bold cursor-pointer" value={editMerchant.currency || '₦'} onChange={e => setEditMerchant({...editMerchant, currency: e.target.value})}>
+                      <option value="₦">Naira (₦)</option>
+                      <option value="$">Dollars ($)</option>
+                      <option value="€">Euros (€)</option>
+                      <option value="£">Pounds (£)</option>
+                      <option value="GH₵">Cedis (GH₵)</option>
+                      <option value="¥">Yuan (¥)</option>
+                      <option value="FG">Francs (FG)</option>
+                    </select>
+                  </div>
+                  <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Theme Color</label><input type="color" value={editMerchant.theme_color || '#000000'} onChange={e => setEditMerchant({...editMerchant, theme_color: e.target.value})} className="w-full h-12 rounded cursor-pointer border p-1 bg-white" /></div>
                   <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Business Logo</label>{editMerchant.logo_url && <img src={editMerchant.logo_url} alt="Logo" className="h-16 mb-2 rounded-lg border object-contain bg-white p-1" />}<input type="file" accept="image/*" onChange={e => setLogoFile(e.target.files[0])} className="w-full border p-2 rounded-lg text-sm bg-white" /></div>
                 </div>
                 <div className="p-5 bg-gray-50 rounded-xl border border-gray-100 space-y-4">
