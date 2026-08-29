@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabase } from './supabaseClient'
 
@@ -64,7 +64,16 @@ export default function MerchantPortal() {
   async function handleUpdateSettings(e) {
     e.preventDefault(); setIsUploading(true); let logo_url = editMerchant.logo_url;
     if (logoFile) { const uploadedUrl = await uploadFile(logoFile, `logos/${editMerchant.slug}`); if (uploadedUrl) logo_url = uploadedUrl; }
-    const { error } = await supabase.from('merchants').update({ theme_color: editMerchant.theme_color, logo_url: logo_url, pin_code: editMerchant.pin_code, facebook_url: editMerchant.facebook_url, instagram_url: editMerchant.instagram_url, tiktok_url: editMerchant.tiktok_url, x_url: editMerchant.x_url }).eq('id', merchant.id)
+    const { error } = await supabase.from('merchants').update({ 
+      theme_color: editMerchant.theme_color, 
+      logo_url: logo_url, 
+      pin_code: editMerchant.pin_code, 
+      facebook_url: editMerchant.facebook_url, 
+      instagram_url: editMerchant.instagram_url,
+      linkedin_url: editMerchant.linkedin_url,
+      tiktok_url: editMerchant.tiktok_url, 
+      x_url: editMerchant.x_url 
+    }).eq('id', merchant.id)
     if (!error) { alert('Store settings updated successfully!'); setMerchant({...editMerchant, logo_url}); setLogoFile(null); }
     else alert('Error: ' + error.message) 
     setIsUploading(false)
@@ -90,13 +99,31 @@ export default function MerchantPortal() {
   function handleEditClick(product) { setEditingProductId(product.id); setNewProduct({ name: product.name, description: product.description || '', price: product.price, category: product.category }); window.scrollTo({ top: 0, behavior: 'smooth' }); }
   function cancelEdit() { setEditingProductId(null); setNewProduct({ name: '', description: '', price: '', category: '' }); setProductImageFile(null); const fileInput = document.getElementById('product-image'); if(fileInput) fileInput.value = ''; }
 
-  // Helper to calculate days remaining for the banner
   function getDaysRemaining(endDateString) {
     if (!endDateString) return 0;
     const end = new Date(endDateString);
     const today = new Date();
     const diffTime = end - today;
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  }
+
+  // Native Share Feature
+  async function handleShareStore() {
+    const storeUrl = `https://crudhub.com.ng/${merchant.slug}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: merchant.business_name,
+          text: 'Check out our online store and place your order on WhatsApp!',
+          url: storeUrl,
+        });
+      } catch (err) {
+        console.log('Share canceled or not supported on this device.');
+      }
+    } else {
+      navigator.clipboard.writeText(storeUrl);
+      alert('Store link copied to clipboard!');
+    }
   }
 
   if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-xl">Loading space...</div>
@@ -119,10 +146,10 @@ export default function MerchantPortal() {
     )
   }
 
-  const storeUrl = `https://crudhub-app.vercel.app/${merchant.slug}`
+  const storeUrl = `https://crudhub.com.ng/${merchant.slug}`
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(storeUrl)}`
+  const currency = merchant.currency || '₦'
   
-  // Notification Logic
   const daysLeft = getDaysRemaining(merchant.subscription_end_date);
   const showWarning = daysLeft <= 3;
   const isExpired = daysLeft < 0;
@@ -138,6 +165,19 @@ export default function MerchantPortal() {
           <button onClick={() => setIsAuthenticated(false)} className="text-gray-500 hover:text-red-600 font-bold text-sm bg-gray-50 px-4 py-2 rounded-lg border hover:bg-red-50 transition-colors">Lock Portal</button>
         </div>
       </div>
+
+      {/* ADMIN BROADCAST BANNER */}
+      {merchant.admin_message && (
+        <div className="bg-blue-600 text-white shadow-md">
+          <div className="max-w-6xl mx-auto px-6 py-4 flex items-start gap-3">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5"><path d="M22 17H2a3 3 0 0 0 3-3V9a7 7 0 0 1 14 0v5a3 3 0 0 0 3 3zm-8.27 4a2 2 0 0 1-3.46 0"/></svg>
+            <div>
+              <h3 className="font-bold text-lg mb-0.5">Platform Announcement</h3>
+              <p className="font-medium text-blue-50 leading-relaxed text-sm">{merchant.admin_message}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* SUBSCRIPTION WARNING BANNER */}
       {showWarning && (
@@ -160,13 +200,29 @@ export default function MerchantPortal() {
         </div>
       )}
 
-      <div className={`max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-8 ${showWarning ? 'mt-6' : 'mt-8'}`}>
-        <div className="space-y-2">
-          <button onClick={() => setActiveTab('orders')} className={`w-full text-left px-5 py-4 rounded-xl font-bold transition-colors ${activeTab === 'orders' ? 'bg-black text-white shadow-md' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'}`}><span className="flex items-center gap-2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg> Order History</span></button>
-          <button onClick={() => setActiveTab('qr')} className={`w-full text-left px-5 py-4 rounded-xl font-bold transition-colors ${activeTab === 'qr' ? 'bg-black text-white shadow-md' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'}`}><span className="flex items-center gap-2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg> Store QR Code</span></button>
-          <button onClick={() => setActiveTab('catalog')} className={`w-full text-left px-5 py-4 rounded-xl font-bold transition-colors ${activeTab === 'catalog' ? 'bg-black text-white shadow-md' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'}`}><span className="flex items-center gap-2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> My Catalog</span></button>
-          <button onClick={() => setActiveTab('settings')} className={`w-full text-left px-5 py-4 rounded-xl font-bold transition-colors ${activeTab === 'settings' ? 'bg-black text-white shadow-md' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'}`}><span className="flex items-center gap-2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Store Settings</span></button>
+      <div className={`max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-8 ${showWarning || merchant.admin_message ? 'mt-6' : 'mt-8'}`}>
+        
+        <div className="space-y-6">
+          {/* NEW SHARE STORE COMPONENT */}
+          <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Your Store Link</p>
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm font-bold text-gray-800 break-all mb-4">
+              crudhub.com.ng/{merchant.slug}
+            </div>
+            <button onClick={handleShareStore} className="w-full bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 transition-transform active:scale-95 shadow-sm flex justify-center items-center gap-2">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+              Share Store
+            </button>
+          </div>
+
+          <div className="space-y-2">
+            <button onClick={() => setActiveTab('orders')} className={`w-full text-left px-5 py-4 rounded-xl font-bold transition-colors ${activeTab === 'orders' ? 'bg-black text-white shadow-md' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'}`}><span className="flex items-center gap-2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg> Order History</span></button>
+            <button onClick={() => setActiveTab('qr')} className={`w-full text-left px-5 py-4 rounded-xl font-bold transition-colors ${activeTab === 'qr' ? 'bg-black text-white shadow-md' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'}`}><span className="flex items-center gap-2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg> Store QR Code</span></button>
+            <button onClick={() => setActiveTab('catalog')} className={`w-full text-left px-5 py-4 rounded-xl font-bold transition-colors ${activeTab === 'catalog' ? 'bg-black text-white shadow-md' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'}`}><span className="flex items-center gap-2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> My Catalog</span></button>
+            <button onClick={() => setActiveTab('settings')} className={`w-full text-left px-5 py-4 rounded-xl font-bold transition-colors ${activeTab === 'settings' ? 'bg-black text-white shadow-md' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'}`}><span className="flex items-center gap-2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Store Settings</span></button>
+          </div>
         </div>
+
         <div className="md:col-span-3">
           {activeTab === 'orders' && (
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
@@ -179,7 +235,7 @@ export default function MerchantPortal() {
                       <tr key={order.id} className="hover:bg-gray-50 transition-colors">
                         <td className="p-4 text-sm font-medium text-gray-600">{new Date(order.created_at).toLocaleDateString()}</td>
                         <td className="p-4"><p className="font-bold text-gray-900">{order.customer_name}</p><p className="text-xs text-gray-500">{order.customer_address}</p></td>
-                        <td className="p-4 font-bold text-green-700">₦{Number(order.total_amount).toLocaleString()}</td>
+                        <td className="p-4 font-bold text-green-700">{currency}{Number(order.total_amount).toLocaleString()}</td>
                         <td className="p-4"><span className={`px-3 py-1 rounded-full text-xs font-bold ${order.status === 'Completed' ? 'bg-green-100 text-green-800' : order.status === 'Processing' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'}`}>{order.status}</span></td>
                         <td className="p-4"><select className="border border-gray-300 rounded-lg text-sm p-1.5 outline-none focus:ring-2 focus:ring-black font-medium cursor-pointer" value={order.status} onChange={(e) => updateOrderStatus(order.id, e.target.value)}><option value="Pending">Pending</option><option value="Processing">Processing</option><option value="Completed">Completed</option></select></td>
                       </tr>
@@ -210,7 +266,7 @@ export default function MerchantPortal() {
                  </h3>
                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                    <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Item Name</label><input required className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-black outline-none bg-white" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} /></div>
-                   <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Price (₦)</label><input required type="number" className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-black outline-none bg-white" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} /></div>
+                   <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Price ({currency})</label><input required type="number" className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-black outline-none bg-white" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} /></div>
                    <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Category (e.g. Mains, Drinks)</label><input required className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-black outline-none bg-white" value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} /></div>
                    <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Product Image (Optional)</label><input id="product-image" type="file" accept="image/*" onChange={e => setProductImageFile(e.target.files[0])} className="w-full border p-2 rounded-lg text-sm bg-white" /></div>
                  </div>
@@ -224,7 +280,7 @@ export default function MerchantPortal() {
                    <div key={p.id} className="flex flex-col sm:flex-row justify-between sm:items-center p-4 border border-gray-100 rounded-xl bg-gray-50 hover:bg-white transition-colors gap-4">
                      <div className="flex items-center gap-4">
                        {p.image_url ? <img src={p.image_url} alt={p.name} className="w-16 h-16 object-cover rounded-lg shadow-sm border bg-white" /> : <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center text-xs font-bold text-gray-500 border">No Img</div>}
-                       <div><h4 className="font-bold text-gray-900 text-lg leading-tight">{p.name}</h4><p className="text-green-700 font-bold mb-1">₦{Number(p.price).toLocaleString()}</p><span className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded font-bold uppercase tracking-wider">{p.category}</span></div>
+                       <div><h4 className="font-bold text-gray-900 text-lg leading-tight">{p.name}</h4><p className="text-green-700 font-bold mb-1">{currency}{Number(p.price).toLocaleString()}</p><span className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded font-bold uppercase tracking-wider">{p.category}</span></div>
                      </div>
                      <div className="flex gap-2 sm:flex-col sm:items-end">
                         <button onClick={() => handleEditClick(p)} className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-100 border border-blue-200 transition-colors flex-1 sm:flex-none text-center">Edit</button>
@@ -252,6 +308,7 @@ export default function MerchantPortal() {
                     <div><label className="block text-sm font-bold mb-1.5 text-gray-700">TikTok URL</label><input placeholder="https://tiktok.com/@..." className="w-full border p-2.5 rounded-lg text-sm bg-white focus:ring-2 focus:ring-black outline-none" value={editMerchant.tiktok_url || ''} onChange={e => setEditMerchant({...editMerchant, tiktok_url: e.target.value})} /></div>
                     <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Facebook URL</label><input placeholder="https://facebook.com/..." className="w-full border p-2.5 rounded-lg text-sm bg-white focus:ring-2 focus:ring-black outline-none" value={editMerchant.facebook_url || ''} onChange={e => setEditMerchant({...editMerchant, facebook_url: e.target.value})} /></div>
                     <div><label className="block text-sm font-bold mb-1.5 text-gray-700">X (Twitter) URL</label><input placeholder="https://x.com/..." className="w-full border p-2.5 rounded-lg text-sm bg-white focus:ring-2 focus:ring-black outline-none" value={editMerchant.x_url || ''} onChange={e => setEditMerchant({...editMerchant, x_url: e.target.value})} /></div>
+                    <div className="md:col-span-2"><label className="block text-sm font-bold mb-1.5 text-gray-700">LinkedIn URL</label><input placeholder="https://linkedin.com/company/..." className="w-full border p-2.5 rounded-lg text-sm bg-white focus:ring-2 focus:ring-black outline-none" value={editMerchant.linkedin_url || ''} onChange={e => setEditMerchant({...editMerchant, linkedin_url: e.target.value})} /></div>
                   </div>
                 </div>
                 <div className="p-5 bg-gray-50 rounded-xl border border-gray-100 space-y-4">
