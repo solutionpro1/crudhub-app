@@ -9,8 +9,7 @@ function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
   const dLon = (lon2-lon1) * (Math.PI/180); 
   const a = 
     Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * (Math.PI/180)) * Math.cos(lat2 * (Math.PI/180)) * 
-    Math.sin(dLon/2) * Math.sin(dLon/2); 
+    Math.cos(lat1 * (Math.PI/180)) * Math.cos(lat2 * (Math.PI/180)) * Math.sin(dLon/2) * Math.sin(dLon/2); 
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
   return R * c; 
 }
@@ -29,8 +28,10 @@ export default function Storefront() {
   const [merchantCoords, setMerchantCoords] = useState(null)
   const [customer, setCustomer] = useState({ name: '', address: '', notes: '', fulfillmentType: 'delivery', lat: null, lng: null })
   
-  // Free OpenStreetMap Autocomplete State
   const [addressSuggestions, setAddressSuggestions] = useState([])
+  
+  // NEW: Variant Selection State
+  const [selectedProductForVariant, setSelectedProductForVariant] = useState(null)
 
   useEffect(() => { fetchStoreData() }, [storeSlug])
 
@@ -39,7 +40,6 @@ export default function Storefront() {
     if (merchantError || !merchantData) { setLoading(false); return; }
     setMerchant(merchantData)
     
-    // Automatically find the merchant's coordinates using their physical address for distance calculation
     if (merchantData.delivery_enabled && merchantData.physical_address) {
       if (merchantData.store_lat && merchantData.store_lng) {
         setMerchantCoords({ lat: merchantData.store_lat, lng: merchantData.store_lng })
@@ -57,6 +57,26 @@ export default function Storefront() {
     setLoading(false)
   }
 
+  // Intercept the Add to Cart click if variants exist
+  function initiateAddToCart(product) {
+    if (product.variants && product.variants.length > 0) {
+      setSelectedProductForVariant(product);
+    } else {
+      addToCart(product);
+    }
+  }
+
+  function handleSelectVariant(product, variant) {
+    const itemToAdd = {
+      ...product,
+      id: variant ? `${product.id}-${variant.label}` : product.id,
+      name: variant ? `${product.name} (${variant.label})` : product.name,
+      price: variant ? Number(product.price) + Number(variant.price) : Number(product.price)
+    };
+    addToCart(itemToAdd);
+    setSelectedProductForVariant(null);
+  }
+
   function addToCart(product) {
     setCart(prev => {
       const existing = prev.find(item => item.id === product.id)
@@ -72,7 +92,6 @@ export default function Storefront() {
     }))
   }
 
-  // Free OpenStreetMap Address Search
   async function searchAddress(query) {
     setCustomer({...customer, address: query, lat: null, lng: null});
     if (query.length < 4) { setAddressSuggestions([]); return; }
@@ -93,7 +112,6 @@ export default function Storefront() {
     setAddressSuggestions([]);
   }
 
-  // HTML5 Native Geolocation (Pin Current Location)
   function getLocation() {
     if (!navigator.geolocation) return alert('Location services are not supported by your browser.');
     navigator.geolocation.getCurrentPosition(async (position) => {
@@ -109,7 +127,6 @@ export default function Storefront() {
     }, () => alert('Unable to retrieve your location. Please type it in manually.'));
   }
 
-  // Cart & Delivery Math
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0)
   const cartSubtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
   
@@ -118,7 +135,7 @@ export default function Storefront() {
   
   if (customer.fulfillmentType === 'delivery' && merchant?.delivery_enabled && customer.lat && merchantCoords) {
     distanceKm = getDistanceFromLatLonInKm(merchantCoords.lat, merchantCoords.lng, customer.lat, customer.lng);
-    const blocks = Math.ceil(distanceKm / 3); // Calculate per 3 KM block
+    const blocks = Math.ceil(distanceKm / 3); 
     deliveryFee = blocks * (merchant.delivery_rate_per_km || 0);
   }
   
@@ -200,7 +217,6 @@ export default function Storefront() {
     return matchesCategory && matchesSearch
   })
 
-  // Font mapping for Hero section
   const fontStyle = merchant.hero_font === 'serif' ? 'serif' : merchant.hero_font === 'monospace' ? 'monospace' : 'sans-serif';
 
   return (
@@ -212,7 +228,6 @@ export default function Storefront() {
         </div>
       </header>
 
-      {/* DYNAMIC HERO SECTION */}
       {merchant.hero_text && (
         <div className="w-full py-16 px-6 text-center shadow-inner" style={{ backgroundColor: themeColor, fontFamily: fontStyle }}>
           <h2 className="text-3xl md:text-5xl font-black max-w-4xl mx-auto leading-tight" style={{ color: merchant.hero_text_color || '#ffffff' }}>
@@ -245,7 +260,7 @@ export default function Storefront() {
                 <h3 className="font-bold text-gray-900 text-lg">{product.name}</h3>
                 <span className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block">{product.category}</span>
                 <p className="font-black text-lg mt-auto mb-4" style={{ color: themeColor }}>{currency}{Number(product.price).toLocaleString()}</p>
-                <button onClick={() => addToCart(product)} className="w-full py-2.5 rounded-lg font-bold text-white transition-opacity hover:opacity-90 active:scale-95" style={{ backgroundColor: themeColor }}>Add to Cart</button>
+                <button onClick={() => initiateAddToCart(product)} className="w-full py-2.5 rounded-lg font-bold text-white transition-opacity hover:opacity-90 active:scale-95" style={{ backgroundColor: themeColor }}>Add to Cart</button>
               </div>
             </div>
           ))}
@@ -255,7 +270,6 @@ export default function Storefront() {
 
       <footer className="w-full bg-white border-t border-gray-200 mt-8 py-10">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          
           {hasSocials && (
             <>
               <h3 className="text-gray-900 font-bold mb-6 text-lg">Connect with {merchant.business_name}</h3>
@@ -269,7 +283,6 @@ export default function Storefront() {
             </>
           )}
 
-          {/* DYNAMIC CONTACT INFO IN FOOTER */}
           {(merchant.physical_address || merchant.contact_email) && (
             <div className="border-t border-gray-100 pt-8 flex flex-col items-center gap-3">
               {merchant.physical_address && (
@@ -304,6 +317,42 @@ export default function Storefront() {
         </div>
       )}
 
+      {/* VARIANT SELECTION MODAL */}
+      {selectedProductForVariant && (
+        <div className="fixed inset-0 bg-black/60 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-slide-in">
+          <div className="w-full max-w-md bg-white sm:rounded-2xl rounded-t-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+              <h3 className="font-bold text-lg text-gray-900 truncate pr-4">{selectedProductForVariant.name}</h3>
+              <button onClick={() => setSelectedProductForVariant(null)} className="text-gray-400 hover:text-black p-1 bg-white rounded-full border shadow-sm shrink-0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            </div>
+            <div className="p-5 overflow-y-auto">
+              <p className="text-sm text-gray-500 font-bold uppercase tracking-wider mb-3">Choose an Option</p>
+              
+              <button onClick={() => handleSelectVariant(selectedProductForVariant, null)} className="w-full flex justify-between items-center p-4 border-2 border-gray-200 rounded-xl hover:border-black hover:bg-gray-50 transition-colors mb-3 text-left">
+                <div>
+                  <span className="block font-bold text-gray-900">Base Item (No Add-ons)</span>
+                  <span className="text-sm text-gray-500 font-medium">Standard preparation</span>
+                </div>
+                <span className="font-black text-lg">{currency}{Number(selectedProductForVariant.price).toLocaleString()}</span>
+              </button>
+
+              {selectedProductForVariant.variants.map((variant, idx) => (
+                <button key={idx} onClick={() => handleSelectVariant(selectedProductForVariant, variant)} className="w-full flex justify-between items-center p-4 border-2 border-gray-200 rounded-xl hover:border-black hover:bg-gray-50 transition-colors mb-3 text-left">
+                  <div>
+                    <span className="block font-bold text-gray-900">{variant.label}</span>
+                    <span className="text-sm text-green-600 font-bold">+{currency}{Number(variant.price).toLocaleString()}</span>
+                  </div>
+                  <span className="font-black text-lg" style={{ color: themeColor }}>
+                    {currency}{(Number(selectedProductForVariant.price) + Number(variant.price)).toLocaleString()}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CHECKOUT MODAL */}
       {isCheckoutOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex justify-end">
           <div className="w-full max-w-md bg-white h-full overflow-y-auto flex flex-col animate-slide-in">
@@ -313,8 +362,8 @@ export default function Storefront() {
             </div>
             
             <div className="p-4 flex-1">
-              {cart.map(item => (
-                <div key={item.id} className="flex justify-between items-center mb-4 pb-4 border-b">
+              {cart.map((item, idx) => (
+                <div key={idx} className="flex justify-between items-center mb-4 pb-4 border-b">
                   <div className="flex-1 pr-4"><h4 className="font-bold text-gray-800">{item.name}</h4><p className="text-sm text-gray-500">{currency}{Number(item.price).toLocaleString()} each</p></div>
                   <div className="flex items-center gap-3 bg-gray-100 rounded-lg p-1"><button onClick={() => updateQuantity(item.id, -1)} className="w-8 h-8 flex items-center justify-center font-bold text-lg bg-white rounded shadow-sm">-</button><span className="font-bold w-4 text-center">{item.quantity}</span><button onClick={() => updateQuantity(item.id, 1)} className="w-8 h-8 flex items-center justify-center font-bold text-lg bg-white rounded shadow-sm">+</button></div>
                 </div>
@@ -341,7 +390,6 @@ export default function Storefront() {
 
                   <div><label className="block text-sm font-bold text-gray-700 mb-1">Full Name</label><input required className="w-full border p-3 rounded-xl focus:ring-2 outline-none bg-gray-50 focus:bg-white transition-colors" value={customer.name} onChange={e => setCustomer({...customer, name: e.target.value})} placeholder="Jane Doe" /></div>
                   
-                  {/* SMART LOCATION ADDRESS FIELD */}
                   {customer.fulfillmentType === 'delivery' && (
                     <div className="relative">
                       <label className="block text-sm font-bold text-gray-700 mb-1">Delivery Address</label>
@@ -370,8 +418,6 @@ export default function Storefront() {
             </div>
 
             <div className="p-4 border-t bg-gray-50 sticky bottom-0 z-20">
-              
-              {/* Delivery Fee Summary */}
               {customer.fulfillmentType === 'delivery' && merchant?.delivery_enabled && customer.lat && (
                 <div className="flex justify-between items-center mb-3 pb-3 border-b border-gray-200 text-sm text-gray-600 font-medium">
                   <span>Delivery Fee ({distanceKm.toFixed(1)} km)</span>
