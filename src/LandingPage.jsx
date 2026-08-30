@@ -6,6 +6,10 @@ export default function LandingPage() {
   const [isLoginOpen, setIsLoginOpen] = useState(false)
   const [isSignupOpen, setIsSignupOpen] = useState(false)
 
+  // Policy Modal States
+  const [isTermsOpen, setIsTermsOpen] = useState(false)
+  const [isPrivacyOpen, setIsPrivacyOpen] = useState(false)
+
   // Login States
   const [loginInput, setLoginInput] = useState('')
   const [loginPin, setLoginPin] = useState('')
@@ -148,7 +152,7 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
-      <nav className="bg-white border-b border-gray-200 fixed w-full top-0 z-50">
+      <nav className="bg-white border-b border-gray-200 fixed w-full top-0 z-40">
         <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src="/crudhub-logo.jpg" alt="Crudhub Logo" className="h-10 w-10 rounded-full object-cover shadow-sm border border-gray-100" />
@@ -178,7 +182,6 @@ export default function LandingPage() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            
             <div className="bg-gray-50 p-8 rounded-2xl border border-gray-100">
               <div className="text-gray-800 mb-5"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></div>
               <h3 className="text-xl font-bold mb-3">Direct to WhatsApp</h3>
@@ -242,14 +245,15 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="mt-8 flex justify-center gap-4 text-gray-500 text-sm font-medium">
-             <button type="button" onClick={() => window.open('/terms', '_blank')} className="hover:text-white transition-colors cursor-pointer">Terms & Conditions</button>
+             <button type="button" onClick={() => setIsTermsOpen(true)} className="hover:text-white transition-colors cursor-pointer">Terms & Conditions</button>
              <span>|</span>
-             <button type="button" onClick={() => window.open('/privacy', '_blank')} className="hover:text-white transition-colors cursor-pointer">Privacy Policy</button>
+             <button type="button" onClick={() => setIsPrivacyOpen(true)} className="hover:text-white transition-colors cursor-pointer">Privacy Policy</button>
           </div>
           <p className="text-gray-600 text-xs font-medium mt-4">&copy; {new Date().getFullYear()} Crudhub. Powered by SolutionPRO Technologies. All rights reserved.</p>
         </div>
       </footer>
 
+      {/* LOGIN MODAL */}
       {isLoginOpen && (
         <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm relative animate-slide-in">
@@ -279,6 +283,7 @@ export default function LandingPage() {
         </div>
       )}
 
+      {/* SIGNUP MODAL */}
       {isSignupOpen && (
         <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md relative animate-slide-in">
@@ -332,21 +337,9 @@ export default function LandingPage() {
                 />
                 <div className="text-sm text-gray-600 font-medium leading-tight pt-0.5">
                   <label htmlFor="terms" className="cursor-pointer">I agree to the </label>
-                  <button 
-                    type="button" 
-                    onClick={() => window.open('/terms', '_blank')} 
-                    className="text-blue-600 hover:underline font-bold cursor-pointer"
-                  >
-                    Terms & Conditions
-                  </button>
+                  <button type="button" onClick={() => setIsTermsOpen(true)} className="text-blue-600 hover:underline font-bold cursor-pointer">Terms & Conditions</button>
                   <span> and </span>
-                  <button 
-                    type="button" 
-                    onClick={() => window.open('/privacy', '_blank')} 
-                    className="text-blue-600 hover:underline font-bold cursor-pointer"
-                  >
-                    Privacy Policy
-                  </button>
+                  <button type="button" onClick={() => setIsPrivacyOpen(true)} className="text-blue-600 hover:underline font-bold cursor-pointer">Privacy Policy</button>
                   <label htmlFor="terms" className="cursor-pointer">, and confirm my business operates legally.</label>
                 </div>
               </div>
@@ -359,7 +352,58 @@ export default function LandingPage() {
           </div>
         </div>
       )}
-      <style dangerouslySetInnerHTML={{__html: `@keyframes slide-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } } .animate-slide-in { animation: slide-in 0.2s ease-out forwards; } html { scroll-behavior: smooth; } .sticky-close { position: sticky; float: right; top: 0; }`}} />
+
+      {/* TERMS & CONDITIONS MODAL */}
+      {isTermsOpen && (
+        <div className="fixed inset-0 bg-black/60 z-[110] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col relative animate-slide-in">
+            <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-2xl">
+              <h2 className="text-xl font-bold text-gray-900">Terms & Conditions</h2>
+              <button type="button" onClick={() => setIsTermsOpen(false)} className="text-gray-400 hover:text-black p-2 bg-white rounded-full w-8 h-8 flex items-center justify-center font-bold shadow-sm border border-gray-200">
+                <CloseIcon />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto text-gray-600 text-sm space-y-4">
+              <p><strong>1. Acceptance of Terms</strong><br/>By creating a store and using the Crudhub platform, you agree to be bound by these Terms and Conditions.</p>
+              <p><strong>2. Description of Service</strong><br/>Crudhub provides merchants with a digital storefront, catalog management, and order routing via WhatsApp. Crudhub is not a party to the transactions between merchants and customers.</p>
+              <p><strong>3. Merchant Responsibilities</strong><br/>You are solely responsible for all products listed, pricing, fulfillment of orders, and compliance with all applicable local, state, and national laws. You must not use the platform to sell illegal, counterfeit, or prohibited goods.</p>
+              <p><strong>4. Subscription & Fees</strong><br/>Crudhub offers a 14-day free trial. Following the trial period, continued access to the platform requires a paid subscription. Failure to pay may result in suspension of your store.</p>
+              <p><strong>5. Limitation of Liability</strong><br/>SolutionPRO Technologies shall not be liable for any indirect, incidental, or consequential damages resulting from the use or inability to use the service.</p>
+              {/* You can replace this text with your exact legal copy later! */}
+            </div>
+            <div className="p-4 border-t border-gray-100 bg-white rounded-b-2xl flex justify-end">
+              <button onClick={() => setIsTermsOpen(false)} className="bg-black text-white px-6 py-2.5 rounded-xl font-bold hover:bg-gray-800 transition-colors">I Understand</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PRIVACY POLICY MODAL */}
+      {isPrivacyOpen && (
+        <div className="fixed inset-0 bg-black/60 z-[110] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col relative animate-slide-in">
+            <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-2xl">
+              <h2 className="text-xl font-bold text-gray-900">Privacy Policy</h2>
+              <button type="button" onClick={() => setIsPrivacyOpen(false)} className="text-gray-400 hover:text-black p-2 bg-white rounded-full w-8 h-8 flex items-center justify-center font-bold shadow-sm border border-gray-200">
+                <CloseIcon />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto text-gray-600 text-sm space-y-4">
+              <p><strong>1. Information We Collect</strong><br/>We collect information you provide directly to us when creating a store, including your business name, email address, phone number, and physical address.</p>
+              <p><strong>2. How We Use Your Information</strong><br/>We use this information to provide, maintain, and improve our services, process transactions, and send you technical notices and support messages.</p>
+              <p><strong>3. Customer Data</strong><br/>When customers place an order through your store, their name, delivery address, and order details are routed directly to your WhatsApp. Crudhub stores this data temporarily to generate the order, but you (the merchant) are the primary custodian of your customers' data.</p>
+              <p><strong>4. Data Security</strong><br/>We implement security measures designed to protect your information from unauthorized access and use. However, no security system is impenetrable.</p>
+              <p><strong>5. Contact Us</strong><br/>If you have any questions about this Privacy Policy, please contact us at realsolutionpro@outlook.com.</p>
+              {/* You can replace this text with your exact legal copy later! */}
+            </div>
+            <div className="p-4 border-t border-gray-100 bg-white rounded-b-2xl flex justify-end">
+              <button onClick={() => setIsPrivacyOpen(false)} className="bg-black text-white px-6 py-2.5 rounded-xl font-bold hover:bg-gray-800 transition-colors">I Understand</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style dangerouslySetInnerHTML={{__html: `@keyframes slide-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } } .animate-slide-in { animation: slide-in 0.2s ease-out forwards; } html { scroll-behavior: smooth; }`}} />
     </div>
   )
 }
