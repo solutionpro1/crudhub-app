@@ -24,7 +24,6 @@ export default function LandingPage() {
   const [signupError, setSignupError] = useState('')
   const [agreedToTerms, setAgreedToTerms] = useState(false)
 
-  // Comprehensive Global Country Codes (Text based to prevent encoding errors)
   const countryList = [
     { code: "+93", name: "AF" }, { code: "+355", name: "AL" }, { code: "+213", name: "DZ" }, { code: "+376", name: "AD" },
     { code: "+244", name: "AO" }, { code: "+54", name: "AR" }, { code: "+61", name: "AU" }, { code: "+43", name: "AT" },
@@ -164,39 +163,67 @@ export default function LandingPage() {
 
       <section className="pt-32 pb-20 px-6 max-w-6xl mx-auto text-center mt-10">
         <h1 className="text-5xl md:text-7xl font-black tracking-tight mb-6 leading-tight">Your Business.<br/><span className="text-green-600">On WhatsApp.</span></h1>
-        <p className="text-xl text-gray-500 mb-10 max-w-2xl mx-auto font-medium">Take your boutique, pharmacy, restaurant, or retail shop online in minutes. Get a beautiful digital storefront, custom QR codes, and receive every order directly to your WhatsApp. Zero commissions.</p>
+        <p className="text-xl text-gray-500 mb-10 max-w-2xl mx-auto font-medium">Take your boutique, pharmacy, restaurant, or retail shop online in minutes. Get a smart catalog, dynamic GPS delivery calculations, real-time analytics, and receive every order straight to your WhatsApp.</p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <button onClick={() => setIsSignupOpen(true)} className="bg-black text-white px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:bg-gray-800 transition-transform active:scale-95 flex items-center justify-center gap-2">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
             Launch Your Store
           </button>
-          <a href="#features" className="bg-white text-gray-900 border-2 border-gray-200 px-8 py-4 rounded-xl font-bold text-lg hover:border-gray-300 transition-colors">See How it Works</a>
+          <a href="#features" className="bg-white text-gray-900 border-2 border-gray-200 px-8 py-4 rounded-xl font-bold text-lg hover:border-gray-300 transition-colors">See the Features</a>
         </div>
       </section>
 
       <section id="features" className="py-20 bg-white px-6">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-black mb-4">Everything you need to sell online.</h2>
-            <p className="text-gray-500 font-medium text-lg">We handle the tech so you can focus on growing your business.</p>
+            <h2 className="text-3xl md:text-4xl font-black mb-4">Enterprise features, zero complexity.</h2>
+            <p className="text-gray-500 font-medium text-lg">Everything you need to automate sales, tracking, and delivery logistics.</p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-gray-50 p-8 rounded-2xl border border-gray-100 text-center">
-              <div className="text-gray-800 mb-4 flex justify-center"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            
+            {/* Feature 1 */}
+            <div className="bg-gray-50 p-8 rounded-2xl border border-gray-100">
+              <div className="text-gray-800 mb-5"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></div>
               <h3 className="text-xl font-bold mb-3">Direct to WhatsApp</h3>
-              <p className="text-gray-500 font-medium">No clunky dashboards to monitor. Customers browse your catalog and checkout straight into your WhatsApp inbox.</p>
+              <p className="text-gray-500 font-medium">No clunky dashboards to monitor. Customers browse your catalog and checkout straight into your WhatsApp inbox with a perfectly formatted receipt.</p>
             </div>
-            <div className="bg-gray-50 p-8 rounded-2xl border border-gray-100 text-center">
-              <div className="text-gray-800 mb-4 flex justify-center"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg></div>
+            
+            {/* Feature 2 */}
+            <div className="bg-gray-50 p-8 rounded-2xl border border-gray-100">
+              <div className="text-gray-800 mb-5"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+              <h3 className="text-xl font-bold mb-3">Smart GPS Delivery</h3>
+              <p className="text-gray-500 font-medium">Set your delivery rate per kilometer. Customers pin their exact location, and the system automatically calculates the distance and adds the delivery fee.</p>
+            </div>
+            
+            {/* Feature 3 */}
+            <div className="bg-gray-50 p-8 rounded-2xl border border-gray-100">
+              <div className="text-gray-800 mb-5"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
+              <h3 className="text-xl font-bold mb-3">Add-ons & Variations</h3>
+              <p className="text-gray-500 font-medium">Sell items with multiple options. Add sizes, colors, or extra toppings with dynamic pricing that updates the customer's cart instantly.</p>
+            </div>
+            
+            {/* Feature 4 */}
+            <div className="bg-gray-50 p-8 rounded-2xl border border-gray-100">
+              <div className="text-gray-800 mb-5"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+              <h3 className="text-xl font-bold mb-3">Analytics Dashboard</h3>
+              <p className="text-gray-500 font-medium">Log into your merchant portal to track your total revenue, pending orders, and discover your top-selling products in real time.</p>
+            </div>
+
+            {/* Feature 5 */}
+            <div className="bg-gray-50 p-8 rounded-2xl border border-gray-100">
+              <div className="text-gray-800 mb-5"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg></div>
               <h3 className="text-xl font-bold mb-3">Your Brand, Your Rules</h3>
-              <p className="text-gray-500 font-medium">Customize your storefront with your exact logo and brand colors. Make it feel like your own premium app.</p>
+              <p className="text-gray-500 font-medium">Customize your storefront with your logo, brand colors, and a premium Hero banner. Make it feel like your own dedicated app.</p>
             </div>
-            <div className="bg-gray-50 p-8 rounded-2xl border border-gray-100 text-center">
-              <div className="text-gray-800 mb-4 flex justify-center"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></div>
+
+            {/* Feature 6 */}
+            <div className="bg-gray-50 p-8 rounded-2xl border border-gray-100">
+              <div className="text-gray-800 mb-5"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></div>
               <h3 className="text-xl font-bold mb-3">Instant QR Codes</h3>
-              <p className="text-gray-500 font-medium">Print auto-generated QR codes for your shop, tables, or packaging. Customers just scan, order, and pay seamlessly.</p>
+              <p className="text-gray-500 font-medium">Print auto-generated QR codes for your shop, tables, or packaging. Customers just scan to order and pay seamlessly.</p>
             </div>
+
           </div>
         </div>
       </section>
