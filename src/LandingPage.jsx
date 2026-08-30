@@ -5,9 +5,6 @@ import { supabase } from './supabaseClient'
 export default function LandingPage() {
   const [isLoginOpen, setIsLoginOpen] = useState(false)
   const [isSignupOpen, setIsSignupOpen] = useState(false)
-  
-  const [isTermsOpen, setIsTermsOpen] = useState(false)
-  const [isPrivacyOpen, setIsPrivacyOpen] = useState(false)
 
   // Login States
   const [loginInput, setLoginInput] = useState('')
@@ -182,42 +179,36 @@ export default function LandingPage() {
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             
-            {/* Feature 1 */}
             <div className="bg-gray-50 p-8 rounded-2xl border border-gray-100">
               <div className="text-gray-800 mb-5"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></div>
               <h3 className="text-xl font-bold mb-3">Direct to WhatsApp</h3>
               <p className="text-gray-500 font-medium">No clunky dashboards to monitor. Customers browse your catalog and checkout straight into your WhatsApp inbox with a perfectly formatted receipt.</p>
             </div>
             
-            {/* Feature 2 */}
             <div className="bg-gray-50 p-8 rounded-2xl border border-gray-100">
               <div className="text-gray-800 mb-5"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
               <h3 className="text-xl font-bold mb-3">Smart GPS Delivery</h3>
               <p className="text-gray-500 font-medium">Set your delivery rate per kilometer. Customers pin their exact location, and the system automatically calculates the distance and adds the delivery fee.</p>
             </div>
             
-            {/* Feature 3 */}
             <div className="bg-gray-50 p-8 rounded-2xl border border-gray-100">
               <div className="text-gray-800 mb-5"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
               <h3 className="text-xl font-bold mb-3">Add-ons & Variations</h3>
               <p className="text-gray-500 font-medium">Sell items with multiple options. Add sizes, colors, or extra toppings with dynamic pricing that updates the customer's cart instantly.</p>
             </div>
             
-            {/* Feature 4 */}
             <div className="bg-gray-50 p-8 rounded-2xl border border-gray-100">
               <div className="text-gray-800 mb-5"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
               <h3 className="text-xl font-bold mb-3">Analytics Dashboard</h3>
               <p className="text-gray-500 font-medium">Log into your merchant portal to track your total revenue, pending orders, and discover your top-selling products in real time.</p>
             </div>
 
-            {/* Feature 5 */}
             <div className="bg-gray-50 p-8 rounded-2xl border border-gray-100">
               <div className="text-gray-800 mb-5"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg></div>
               <h3 className="text-xl font-bold mb-3">Your Brand, Your Rules</h3>
               <p className="text-gray-500 font-medium">Customize your storefront with your logo, brand colors, and a premium Hero banner. Make it feel like your own dedicated app.</p>
             </div>
 
-            {/* Feature 6 */}
             <div className="bg-gray-50 p-8 rounded-2xl border border-gray-100">
               <div className="text-gray-800 mb-5"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></div>
               <h3 className="text-xl font-bold mb-3">Instant QR Codes</h3>
@@ -251,9 +242,9 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="mt-8 flex justify-center gap-4 text-gray-500 text-sm font-medium">
-             <button type="button" onClick={() => setIsTermsOpen(true)} className="hover:text-white transition-colors cursor-pointer">Terms & Conditions</button>
+             <button type="button" onClick={() => window.open('/terms', '_blank')} className="hover:text-white transition-colors cursor-pointer">Terms & Conditions</button>
              <span>|</span>
-             <button type="button" onClick={() => setIsPrivacyOpen(true)} className="hover:text-white transition-colors cursor-pointer">Privacy Policy</button>
+             <button type="button" onClick={() => window.open('/privacy', '_blank')} className="hover:text-white transition-colors cursor-pointer">Privacy Policy</button>
           </div>
           <p className="text-gray-600 text-xs font-medium mt-4">&copy; {new Date().getFullYear()} Crudhub. Powered by SolutionPRO Technologies. All rights reserved.</p>
         </div>
@@ -337,26 +328,26 @@ export default function LandingPage() {
                   id="terms" 
                   checked={agreedToTerms} 
                   onChange={(e) => setAgreedToTerms(e.target.checked)}
-                  className="mt-1 w-4 h-4 text-black focus:ring-black rounded border-gray-300"
+                  className="mt-1 w-4 h-4 text-black focus:ring-black rounded border-gray-300 cursor-pointer"
                 />
                 <div className="text-sm text-gray-600 font-medium leading-tight pt-0.5">
-                  <label htmlFor="terms">I agree to the </label>
+                  <label htmlFor="terms" className="cursor-pointer">I agree to the </label>
                   <button 
                     type="button" 
-                    onClick={(e) => { e.preventDefault(); setIsTermsOpen(true); }} 
-                    className="text-blue-600 hover:underline font-bold"
+                    onClick={() => window.open('/terms', '_blank')} 
+                    className="text-blue-600 hover:underline font-bold cursor-pointer"
                   >
                     Terms & Conditions
                   </button>
                   <span> and </span>
                   <button 
                     type="button" 
-                    onClick={(e) => { e.preventDefault(); setIsPrivacyOpen(true); }} 
-                    className="text-blue-600 hover:underline font-bold"
+                    onClick={() => window.open('/privacy', '_blank')} 
+                    className="text-blue-600 hover:underline font-bold cursor-pointer"
                   >
                     Privacy Policy
                   </button>
-                  <label htmlFor="terms">, and confirm my business operates legally.</label>
+                  <label htmlFor="terms" className="cursor-pointer">, and confirm my business operates legally.</label>
                 </div>
               </div>
 
