@@ -22,7 +22,8 @@ export default function MerchantPortal() {
   
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
   
-  // Free OpenStreetMap Autocomplete State for Merchant
+  // Separate Map Search State so it doesn't overwrite the manual footer address
+  const [mapSearchQuery, setMapSearchQuery] = useState('')
   const [addressSuggestions, setAddressSuggestions] = useState([])
 
   useEffect(() => { fetchMerchantDetails() }, [storeSlug])
@@ -66,9 +67,9 @@ export default function MerchantPortal() {
     return data.publicUrl;
   }
 
-  // Smart Location Mapping for Merchants
+  // Coordinates Search (For math only, not the footer)
   async function searchStoreAddress(query) {
-    setEditMerchant({...editMerchant, physical_address: query, store_lat: null, store_lng: null});
+    setMapSearchQuery(query);
     if (query.length < 4) { setAddressSuggestions([]); return; }
     try {
       const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&q=${encodeURIComponent(query)}`);
@@ -80,10 +81,10 @@ export default function MerchantPortal() {
   function selectStoreAddress(suggestion) {
     setEditMerchant({
       ...editMerchant, 
-      physical_address: suggestion.display_name, 
       store_lat: parseFloat(suggestion.lat), 
       store_lng: parseFloat(suggestion.lon)
     });
+    setMapSearchQuery(suggestion.display_name);
     setAddressSuggestions([]);
   }
 
@@ -95,9 +96,11 @@ export default function MerchantPortal() {
       try {
         const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
         const data = await res.json();
-        setEditMerchant({ ...editMerchant, physical_address: data.display_name || `Pinned Store Location`, store_lat: lat, store_lng: lng });
+        setEditMerchant({ ...editMerchant, store_lat: lat, store_lng: lng });
+        setMapSearchQuery(data.display_name || `Pinned Coordinates`);
       } catch(e) {
-        setEditMerchant({ ...editMerchant, physical_address: `Pinned Store Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`, store_lat: lat, store_lng: lng });
+        setEditMerchant({ ...editMerchant, store_lat: lat, store_lng: lng });
+        setMapSearchQuery(`Pinned Coordinates (${lat.toFixed(4)}, ${lng.toFixed(4)})`);
       }
     }, () => alert('Unable to retrieve your location. Please ensure location permissions are granted.'));
   }
@@ -257,7 +260,7 @@ export default function MerchantPortal() {
             <button onClick={() => setActiveTab('orders')} className={`w-full text-left px-5 py-4 rounded-xl font-bold transition-colors ${activeTab === 'orders' ? 'bg-black text-white shadow-md' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'}`}><span className="flex items-center gap-2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg> Order History</span></button>
             <button onClick={() => setActiveTab('qr')} className={`w-full text-left px-5 py-4 rounded-xl font-bold transition-colors ${activeTab === 'qr' ? 'bg-black text-white shadow-md' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'}`}><span className="flex items-center gap-2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg> Store QR Code</span></button>
             <button onClick={() => setActiveTab('catalog')} className={`w-full text-left px-5 py-4 rounded-xl font-bold transition-colors ${activeTab === 'catalog' ? 'bg-black text-white shadow-md' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'}`}><span className="flex items-center gap-2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> My Catalog</span></button>
-            <button onClick={() => setActiveTab('settings')} className={`w-full text-left px-5 py-4 rounded-xl font-bold transition-colors ${activeTab === 'settings' ? 'bg-black text-white shadow-md' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'}`}><span className="flex items-center gap-2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Store Settings</span></button>
+            <button onClick={() => setActiveTab('settings')} className={`w-full text-left px-5 py-4 rounded-xl font-bold transition-colors ${activeTab === 'settings' ? 'bg-black text-white shadow-md' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'}`}><span className="flex items-center gap-2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Store Settings</span></button>
           </div>
         </div>
 
@@ -374,37 +377,15 @@ export default function MerchantPortal() {
                   </div>
                 </div>
 
-                {/* CONTACT & LOCATION WITH MAP API */}
+                {/* CONTACT & FOOTER INFO (MANUAL) */}
                 <div className="p-5 bg-gray-50 rounded-xl border border-gray-100 space-y-4">
-                  <h3 className="font-bold text-gray-900 text-lg">Contact & Location</h3>
-                  <p className="text-sm text-gray-500 mb-2">Set your exact location so distance-based delivery can be calculated accurately.</p>
+                  <h3 className="font-bold text-gray-900 text-lg">Contact & Footer Info</h3>
+                  <p className="text-sm text-gray-500 mb-2">This information will appear in your storefront's footer for customers to see.</p>
                   <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Business Email</label><input type="email" placeholder="contact@yourstore.com" className="w-full border p-2.5 rounded-lg text-sm bg-white focus:ring-2 focus:ring-black outline-none" value={editMerchant.contact_email || ''} onChange={e => setEditMerchant({...editMerchant, contact_email: e.target.value})} /></div>
-                  
-                  <div className="relative border-t border-gray-200 pt-4">
-                    <label className="block text-sm font-bold text-gray-700 mb-1">Physical Store Location</label>
-                    <button type="button" onClick={getStoreLocation} className="w-full mb-2 bg-blue-50 text-blue-700 border border-blue-200 py-2.5 rounded-lg font-bold text-sm hover:bg-blue-100 flex items-center justify-center gap-2 transition-colors">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg> Pin Current GPS Location
-                    </button>
-                    <input required className="w-full border p-3 rounded-xl focus:ring-2 outline-none bg-white transition-colors" value={editMerchant.physical_address || ''} onChange={e => searchStoreAddress(e.target.value)} placeholder="Or search for an address..." />
-                    
-                    {addressSuggestions.length > 0 && (
-                      <ul className="absolute z-30 w-full bg-white border border-gray-200 rounded-lg shadow-xl mt-1 max-h-48 overflow-y-auto">
-                        {addressSuggestions.map((sug, i) => (
-                          <li key={i} onClick={() => selectStoreAddress(sug)} className="p-3 hover:bg-gray-50 cursor-pointer text-sm font-medium border-b border-gray-100 last:border-0">{sug.display_name}</li>
-                        ))}
-                      </ul>
-                    )}
-                    
-                    {editMerchant.store_lat && editMerchant.store_lng && (
-                      <div className="mt-2 inline-flex items-center gap-1.5 bg-green-50 text-green-700 px-3 py-1 rounded-full border border-green-200 text-xs font-bold">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                        Exact Map Coordinates Saved
-                      </div>
-                    )}
-                  </div>
+                  <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Display Address</label><textarea placeholder="Shop 12, Main Market, Lagos... (Shows on your storefront footer)" className="w-full border p-2.5 rounded-lg bg-white focus:ring-2 focus:ring-black outline-none text-sm h-16" value={editMerchant.physical_address || ''} onChange={e => setEditMerchant({...editMerchant, physical_address: e.target.value})} /></div>
                 </div>
 
-                {/* SMART DELIVERY ENGINE */}
+                {/* SMART DELIVERY ENGINE (MAP COORDINATES) */}
                 <div className="p-5 bg-gray-50 rounded-xl border border-gray-100 space-y-4">
                   <h3 className="font-bold text-gray-900 text-lg">Smart Delivery Engine</h3>
                   <p className="text-sm text-gray-500 mb-2">Automatically calculate delivery fees at checkout based on the customer's location.</p>
@@ -415,10 +396,38 @@ export default function MerchantPortal() {
                   </label>
 
                   {editMerchant.delivery_enabled && (
-                    <div className="animate-slide-in">
-                      <label className="block text-sm font-bold mb-1.5 text-gray-700 mt-4">Delivery Rate per 3 Kilometers ({currency})</label>
-                      <input type="number" placeholder="e.g. 1500" className="w-full border p-2.5 rounded-lg text-sm bg-white focus:ring-2 focus:ring-black outline-none" value={editMerchant.delivery_rate_per_km || ''} onChange={e => setEditMerchant({...editMerchant, delivery_rate_per_km: e.target.value})} />
-                      <p className="text-xs text-gray-500 mt-2 font-medium">When customers pin their location, we will charge this rate for every block of 3 kilometers to calculate their final delivery fee.</p>
+                    <div className="animate-slide-in border-t border-gray-200 mt-4 pt-4 space-y-4">
+                      
+                      <div className="relative">
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Store Map Coordinates</label>
+                        <p className="text-xs text-gray-500 mb-2">Pin your exact map location so delivery distances calculate accurately. This is hidden from customers.</p>
+                        <button type="button" onClick={getStoreLocation} className="w-full mb-2 bg-blue-50 text-blue-700 border border-blue-200 py-2.5 rounded-lg font-bold text-sm hover:bg-blue-100 flex items-center justify-center gap-2 transition-colors">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg> Pin Current GPS Location
+                        </button>
+                        <input className="w-full border p-3 rounded-xl focus:ring-2 outline-none bg-white transition-colors" value={mapSearchQuery} onChange={e => searchStoreAddress(e.target.value)} placeholder="Or type to search map database..." />
+                        
+                        {addressSuggestions.length > 0 && (
+                          <ul className="absolute z-30 w-full bg-white border border-gray-200 rounded-lg shadow-xl mt-1 max-h-48 overflow-y-auto">
+                            {addressSuggestions.map((sug, i) => (
+                              <li key={i} onClick={() => selectStoreAddress(sug)} className="p-3 hover:bg-gray-50 cursor-pointer text-sm font-medium border-b border-gray-100 last:border-0">{sug.display_name}</li>
+                            ))}
+                          </ul>
+                        )}
+                        
+                        {editMerchant.store_lat && editMerchant.store_lng && (
+                          <div className="mt-2 inline-flex items-center gap-1.5 bg-green-50 text-green-700 px-3 py-1 rounded-full border border-green-200 text-xs font-bold">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                            Coordinates Saved for Distance Math
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-bold mb-1.5 text-gray-700 mt-4">Delivery Rate per 3 Kilometers ({currency})</label>
+                        <input type="number" placeholder="e.g. 1500" className="w-full border p-2.5 rounded-lg text-sm bg-white focus:ring-2 focus:ring-black outline-none" value={editMerchant.delivery_rate_per_km || ''} onChange={e => setEditMerchant({...editMerchant, delivery_rate_per_km: e.target.value})} />
+                        <p className="text-xs text-gray-500 mt-1 font-medium">We will charge this rate for every block of 3 kilometers between you and the customer.</p>
+                      </div>
+
                     </div>
                   )}
                 </div>
