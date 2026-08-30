@@ -2,6 +2,19 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabase } from './supabaseClient'
 
+// Pure mathematical formula to calculate KM distance between two GPS coordinates
+function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+  const R = 6371; 
+  const dLat = (lat2-lat1) * (Math.PI/180);
+  const dLon = (lon2-lon1) * (Math.PI/180); 
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * (Math.PI/180)) * Math.cos(lat2 * (Math.PI/180)) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2); 
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+  return R * c; 
+}
+
 export default function Storefront() {
   const { storeSlug } = useParams()
   const [merchant, setMerchant] = useState(null)
@@ -13,8 +26,11 @@ export default function Storefront() {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   
-  // Added fulfillmentType (Delivery vs Pickup)
-  const [customer, setCustomer] = useState({ name: '', address: '', notes: '', fulfillmentType: 'delivery' })
+  const [merchantCoords, setMerchantCoords] = useState(null)
+  const [customer, setCustomer] = useState({ name: '', address: '', notes: '', fulfillmentType: 'delivery', lat: null, lng: null })
+  
+  // Free OpenStreetMap Autocomplete State
+  const [addressSuggestions, setAddressSuggestions] = useState([])
 
   useEffect(() => { fetchStoreData() }, [storeSlug])
 
@@ -22,6 +38,20 @@ export default function Storefront() {
     const { data: merchantData, error: merchantError } = await supabase.from('merchants').select('*').eq('slug', storeSlug).single()
     if (merchantError || !merchantData) { setLoading(false); return; }
     setMerchant(merchantData)
+    
+    // Automatically find the merchant's coordinates using their physical address for distance calculation
+    if (merchantData.delivery_enabled && merchantData.physical_address) {
+      if (merchantData.store_lat && merchantData.store_lng) {
+        setMerchantCoords({ lat: merchantData.store_lat, lng: merchantData.store_lng })
+      } else {
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(merchantData.physical_address)}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data && data.length > 0) setMerchantCoords({ lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) })
+          }).catch(err => console.log('Geocoding error:', err))
+      }
+    }
+
     const { data: productData } = await supabase.from('products').select('*').eq('merchant_id', merchantData.id)
     setProducts(productData || [])
     setLoading(false)
@@ -42,41 +72,97 @@ export default function Storefront() {
     }))
   }
 
-  const cartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+  // Free OpenStreetMap Address Search
+  async function searchAddress(query) {
+    setCustomer({...customer, address: query, lat: null, lng: null});
+    if (query.length < 4) { setAddressSuggestions([]); return; }
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      setAddressSuggestions(data);
+    } catch (e) { console.error(e); }
+  }
+
+  function selectAddress(suggestion) {
+    setCustomer({
+      ...customer, 
+      address: suggestion.display_name, 
+      lat: parseFloat(suggestion.lat), 
+      lng: parseFloat(suggestion.lon)
+    });
+    setAddressSuggestions([]);
+  }
+
+  // HTML5 Native Geolocation (Pin Current Location)
+  function getLocation() {
+    if (!navigator.geolocation) return alert('Location services are not supported by your browser.');
+    navigator.geolocation.getCurrentPosition(async (position) => {
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+        const data = await res.json();
+        setCustomer({ ...customer, address: data.display_name || `Pinned Location`, lat: lat, lng: lng });
+      } catch(e) {
+        setCustomer({ ...customer, address: `Pinned Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`, lat, lng });
+      }
+    }, () => alert('Unable to retrieve your location. Please type it in manually.'));
+  }
+
+  // Cart & Delivery Math
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0)
+  const cartSubtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+  
+  let deliveryFee = 0;
+  let distanceKm = 0;
+  
+  if (customer.fulfillmentType === 'delivery' && merchant?.delivery_enabled && customer.lat && merchantCoords) {
+    distanceKm = getDistanceFromLatLonInKm(merchantCoords.lat, merchantCoords.lng, customer.lat, customer.lng);
+    const blocks = Math.ceil(distanceKm / 3); // Calculate per 3 KM block
+    deliveryFee = blocks * (merchant.delivery_rate_per_km || 0);
+  }
+  
+  const finalTotal = cartSubtotal + deliveryFee;
 
   async function handleCheckout(e) {
     e.preventDefault(); 
     setIsSubmitting(true);
     
-    // Save to database
     const { error } = await supabase.from('orders').insert([{ 
       merchant_id: merchant.id, 
       customer_name: customer.name, 
       customer_address: customer.fulfillmentType === 'pickup' ? 'Store Pickup' : customer.address, 
       customer_notes: customer.notes, 
       items: cart, 
-      total_amount: cartTotal, 
+      total_amount: finalTotal, 
       status: 'Pending' 
     }])
     
     if (error) { alert('Error placing order. Please try again.'); setIsSubmitting(false); return; }
 
     const currency = merchant.currency || '₦';
-    
-    // Build the dynamic WhatsApp Message
     let orderText = `*New Order from ${customer.name}!* \n\n`
     
     if (customer.fulfillmentType === 'delivery') {
-       orderText += `*Order Type:* 🚚 Delivery\n*Delivery Address:* ${customer.address}\n\n`
+       orderText += `*Order Type:* 🚚 Delivery\n*Delivery Address:* ${customer.address}\n`
+       if (customer.lat && customer.lng) {
+         orderText += `*Distance:* ${distanceKm.toFixed(1)} km\n`
+         orderText += `*Map Pin:* https://www.google.com/maps?q=${customer.lat},${customer.lng}\n`
+       }
+       orderText += `\n`
     } else {
        orderText += `*Order Type:* 🏬 Store Pickup\n\n`
     }
     
     orderText += `*Items Ordered:*\n`
     cart.forEach(item => { orderText += `- ${item.quantity}x ${item.name} (${currency}${(item.price * item.quantity).toLocaleString()})\n` })
-    orderText += `\n*Total Amount:* ${currency}${cartTotal.toLocaleString()}\n`
     
+    if (deliveryFee > 0) {
+      orderText += `\n*Subtotal:* ${currency}${cartSubtotal.toLocaleString()}\n`
+      orderText += `*Delivery Fee:* ${currency}${deliveryFee.toLocaleString()}\n`
+    }
+    
+    orderText += `\n*Final Total:* ${currency}${finalTotal.toLocaleString()}\n`
     if (customer.notes) orderText += `\n*Customer Note:* ${customer.notes}`
 
     const cleanPhone = merchant.phone_number.replace(/\D/g, '')
@@ -95,9 +181,7 @@ export default function Storefront() {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 text-center font-sans">
         <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200 max-w-md w-full">
-          <div className="text-gray-400 mb-6 flex justify-center">
-            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          </div>
+          <div className="text-gray-400 mb-6 flex justify-center"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
           <h1 className="text-2xl font-bold text-gray-900 mb-3">Store Temporarily Unavailable</h1>
           <p className="text-gray-500 font-medium">This merchant is currently not accepting orders on the platform. Please check back later.</p>
         </div>
@@ -116,6 +200,9 @@ export default function Storefront() {
     return matchesCategory && matchesSearch
   })
 
+  // Font mapping for Hero section
+  const fontStyle = merchant.hero_font === 'serif' ? 'serif' : merchant.hero_font === 'monospace' ? 'monospace' : 'sans-serif';
+
   return (
     <div className="min-h-screen bg-gray-50 pb-24 font-sans flex flex-col">
       <header className="bg-white border-b shadow-sm sticky top-0 z-10">
@@ -124,6 +211,15 @@ export default function Storefront() {
           <div><h1 className="text-xl font-bold text-gray-900">{merchant.business_name}</h1><p className="text-sm text-gray-500">Order directly via WhatsApp</p></div>
         </div>
       </header>
+
+      {/* DYNAMIC HERO SECTION */}
+      {merchant.hero_text && (
+        <div className="w-full py-16 px-6 text-center shadow-inner" style={{ backgroundColor: themeColor, fontFamily: fontStyle }}>
+          <h2 className="text-3xl md:text-5xl font-black max-w-4xl mx-auto leading-tight" style={{ color: merchant.hero_text_color || '#ffffff' }}>
+            {merchant.hero_text}
+          </h2>
+        </div>
+      )}
 
       <main className="max-w-4xl mx-auto px-4 py-8 flex-1 w-full">
         <div className="mb-6 relative">
@@ -157,53 +253,42 @@ export default function Storefront() {
         </div>
       </main>
 
-      {hasSocials && (
-        <footer className="w-full bg-white border-t border-gray-200 mt-8 py-10">
-          <div className="max-w-4xl mx-auto px-4 text-center">
-            <h3 className="text-gray-900 font-bold mb-6 text-lg">Connect with {merchant.business_name}</h3>
-            <div className="flex flex-wrap justify-center gap-4">
-              
-              {merchant.instagram_url && (
-                <a href={merchant.instagram_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-gray-50 text-gray-700 hover:text-pink-600 border border-gray-200 hover:border-pink-600 px-5 py-2.5 rounded-full font-bold transition-colors text-sm shadow-sm">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
-                  Instagram
-                </a>
-              )}
-              
-              {merchant.tiktok_url && (
-                <a href={merchant.tiktok_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-gray-50 text-gray-700 hover:text-black border border-gray-200 hover:border-black px-5 py-2.5 rounded-full font-bold transition-colors text-sm shadow-sm">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/></svg>
-                  TikTok
-                </a>
-              )}
-              
-              {merchant.facebook_url && (
-                <a href={merchant.facebook_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-gray-50 text-gray-700 hover:text-blue-600 border border-gray-200 hover:border-blue-600 px-5 py-2.5 rounded-full font-bold transition-colors text-sm shadow-sm">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
-                  Facebook
-                </a>
-              )}
-              
-              {merchant.x_url && (
-                <a href={merchant.x_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-gray-50 text-gray-700 hover:text-black border border-gray-200 hover:border-black px-5 py-2.5 rounded-full font-bold transition-colors text-sm shadow-sm">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="4" x2="20" y2="20"/><line x1="20" y1="4" x2="4" y2="20"/></svg>
-                  X (Twitter)
-                </a>
-              )}
+      <footer className="w-full bg-white border-t border-gray-200 mt-8 py-10">
+        <div className="max-w-4xl mx-auto px-4 text-center">
+          
+          {hasSocials && (
+            <>
+              <h3 className="text-gray-900 font-bold mb-6 text-lg">Connect with {merchant.business_name}</h3>
+              <div className="flex flex-wrap justify-center gap-4 mb-8">
+                {merchant.instagram_url && (<a href={merchant.instagram_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-gray-50 text-gray-700 hover:text-pink-600 border border-gray-200 hover:border-pink-600 px-5 py-2.5 rounded-full font-bold transition-colors text-sm shadow-sm"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>Instagram</a>)}
+                {merchant.tiktok_url && (<a href={merchant.tiktok_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-gray-50 text-gray-700 hover:text-black border border-gray-200 hover:border-black px-5 py-2.5 rounded-full font-bold transition-colors text-sm shadow-sm"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/></svg>TikTok</a>)}
+                {merchant.facebook_url && (<a href={merchant.facebook_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-gray-50 text-gray-700 hover:text-blue-600 border border-gray-200 hover:border-blue-600 px-5 py-2.5 rounded-full font-bold transition-colors text-sm shadow-sm"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>Facebook</a>)}
+                {merchant.x_url && (<a href={merchant.x_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-gray-50 text-gray-700 hover:text-black border border-gray-200 hover:border-black px-5 py-2.5 rounded-full font-bold transition-colors text-sm shadow-sm"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="4" x2="20" y2="20"/><line x1="20" y1="4" x2="4" y2="20"/></svg>X (Twitter)</a>)}
+                {merchant.linkedin_url && (<a href={merchant.linkedin_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-gray-50 text-gray-700 hover:text-blue-700 border border-gray-200 hover:border-blue-700 px-5 py-2.5 rounded-full font-bold transition-colors text-sm shadow-sm"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>LinkedIn</a>)}
+              </div>
+            </>
+          )}
 
-              {merchant.linkedin_url && (
-                <a href={merchant.linkedin_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-gray-50 text-gray-700 hover:text-blue-700 border border-gray-200 hover:border-blue-700 px-5 py-2.5 rounded-full font-bold transition-colors text-sm shadow-sm">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
-                  LinkedIn
-                </a>
+          {/* DYNAMIC CONTACT INFO IN FOOTER */}
+          {(merchant.physical_address || merchant.contact_email) && (
+            <div className="border-t border-gray-100 pt-8 flex flex-col items-center gap-3">
+              {merchant.physical_address && (
+                <div className="text-sm text-gray-500 flex flex-col items-center gap-1">
+                  <span className="font-bold text-gray-700"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline mr-1"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> Location</span>
+                  <p className="max-w-md text-center">{merchant.physical_address}</p>
+                </div>
               )}
-
+              {merchant.contact_email && (
+                <div className="text-sm text-gray-500 flex flex-col items-center gap-1">
+                  <span className="font-bold text-gray-700"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline mr-1"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> Email Us</span>
+                  <a href={`mailto:${merchant.contact_email}`} className="hover:underline font-medium">{merchant.contact_email}</a>
+                </div>
+              )}
             </div>
-          </div>
-        </footer>
-      )}
+          )}
+        </div>
+      </footer>
 
-      {/* SOLUTIONPRO BRANDING BADGE */}
       <div className="w-full text-center pb-8 pt-4">
         <a href="/" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-400 hover:text-gray-600 transition-colors">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
@@ -214,7 +299,7 @@ export default function Storefront() {
       {cartCount > 0 && !isCheckoutOpen && (
         <div className="fixed bottom-6 left-0 right-0 px-4 z-40 flex justify-center pointer-events-none">
           <button onClick={() => setIsCheckoutOpen(true)} className="w-full max-w-md bg-black text-white px-6 py-4 rounded-2xl font-bold text-lg shadow-2xl flex justify-between items-center transform transition-transform hover:scale-[1.02] active:scale-95 pointer-events-auto">
-            <span className="bg-white text-black px-3 py-1 rounded-lg text-sm">{cartCount} items</span><span>View Cart</span><span>{currency}{cartTotal.toLocaleString()}</span>
+            <span className="bg-white text-black px-3 py-1 rounded-lg text-sm">{cartCount} items</span><span>View Cart</span><span>{currency}{cartSubtotal.toLocaleString()}</span>
           </button>
         </div>
       )}
@@ -222,10 +307,11 @@ export default function Storefront() {
       {isCheckoutOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex justify-end">
           <div className="w-full max-w-md bg-white h-full overflow-y-auto flex flex-col animate-slide-in">
-            <div className="p-4 border-b flex justify-between items-center bg-gray-50 sticky top-0">
+            <div className="p-4 border-b flex justify-between items-center bg-gray-50 sticky top-0 z-20">
               <h2 className="text-xl font-bold">Your Cart</h2>
               <button onClick={() => setIsCheckoutOpen(false)} className="text-gray-500 font-bold hover:text-black p-2"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
             </div>
+            
             <div className="p-4 flex-1">
               {cart.map(item => (
                 <div key={item.id} className="flex justify-between items-center mb-4 pb-4 border-b">
@@ -233,6 +319,7 @@ export default function Storefront() {
                   <div className="flex items-center gap-3 bg-gray-100 rounded-lg p-1"><button onClick={() => updateQuantity(item.id, -1)} className="w-8 h-8 flex items-center justify-center font-bold text-lg bg-white rounded shadow-sm">-</button><span className="font-bold w-4 text-center">{item.quantity}</span><button onClick={() => updateQuantity(item.id, 1)} className="w-8 h-8 flex items-center justify-center font-bold text-lg bg-white rounded shadow-sm">+</button></div>
                 </div>
               ))}
+              
               <div className="mt-6">
                 <h3 className="font-bold text-lg mb-4">Checkout Details</h3>
                 <form id="checkout-form" onSubmit={handleCheckout} className="space-y-5">
@@ -245,7 +332,7 @@ export default function Storefront() {
                         Delivery
                       </label>
                       <label className={`flex-1 flex items-center justify-center gap-2 p-3 border-2 rounded-xl cursor-pointer transition-colors font-bold ${customer.fulfillmentType === 'pickup' ? 'bg-gray-900 border-gray-900 text-white' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>
-                        <input type="radio" className="hidden" checked={customer.fulfillmentType === 'pickup'} onChange={() => setCustomer({...customer, fulfillmentType: 'pickup', address: ''})} />
+                        <input type="radio" className="hidden" checked={customer.fulfillmentType === 'pickup'} onChange={() => setCustomer({...customer, fulfillmentType: 'pickup', address: '', lat: null, lng: null})} />
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                         Store Pickup
                       </label>
@@ -254,17 +341,46 @@ export default function Storefront() {
 
                   <div><label className="block text-sm font-bold text-gray-700 mb-1">Full Name</label><input required className="w-full border p-3 rounded-xl focus:ring-2 outline-none bg-gray-50 focus:bg-white transition-colors" value={customer.name} onChange={e => setCustomer({...customer, name: e.target.value})} placeholder="Jane Doe" /></div>
                   
+                  {/* SMART LOCATION ADDRESS FIELD */}
                   {customer.fulfillmentType === 'delivery' && (
-                    <div><label className="block text-sm font-bold text-gray-700 mb-1">Delivery Address</label><textarea required className="w-full border p-3 rounded-xl focus:ring-2 outline-none bg-gray-50 focus:bg-white transition-colors h-20 resize-none" value={customer.address} onChange={e => setCustomer({...customer, address: e.target.value})} placeholder="123 Main Street..." /></div>
+                    <div className="relative">
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Delivery Address</label>
+                      <button type="button" onClick={getLocation} className="w-full mb-2 bg-blue-50 text-blue-700 border border-blue-200 py-2.5 rounded-lg font-bold text-sm hover:bg-blue-100 flex items-center justify-center gap-2 transition-colors">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg> Pin My Current Location
+                      </button>
+                      <input required className="w-full border p-3 rounded-xl focus:ring-2 outline-none bg-gray-50 focus:bg-white transition-colors" value={customer.address} onChange={e => searchAddress(e.target.value)} placeholder="Or search for an address..." />
+                      
+                      {addressSuggestions.length > 0 && (
+                        <ul className="absolute z-30 w-full bg-white border border-gray-200 rounded-lg shadow-xl mt-1 max-h-48 overflow-y-auto">
+                          {addressSuggestions.map((sug, i) => (
+                            <li key={i} onClick={() => selectAddress(sug)} className="p-3 hover:bg-gray-50 cursor-pointer text-sm font-medium border-b border-gray-100 last:border-0">{sug.display_name}</li>
+                          ))}
+                        </ul>
+                      )}
+                      
+                      {merchant?.delivery_enabled && !customer.lat && customer.address.length > 5 && (
+                        <p className="text-xs text-orange-600 mt-2 font-bold bg-orange-50 p-2 rounded border border-orange-100">Please select an address from the dropdown or pin your location to calculate the delivery fee.</p>
+                      )}
+                    </div>
                   )}
                   
                   <div><label className="block text-sm font-bold text-gray-700 mb-1">Order Notes (Optional)</label><input className="w-full border p-3 rounded-xl focus:ring-2 outline-none bg-gray-50 focus:bg-white transition-colors" value={customer.notes} onChange={e => setCustomer({...customer, notes: e.target.value})} placeholder="Extra spicy, please!" /></div>
                 </form>
               </div>
             </div>
-            <div className="p-4 border-t bg-white sticky bottom-0 z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-              <div className="flex justify-between items-center mb-4 text-lg"><span className="font-bold text-gray-600">Total to Pay</span><span className="font-black text-2xl text-gray-900">{currency}{cartTotal.toLocaleString()}</span></div>
-              <button form="checkout-form" type="submit" disabled={isSubmitting} className="w-full text-white px-6 py-4 rounded-xl font-bold text-lg shadow-md transition-opacity hover:opacity-90 disabled:bg-gray-400 flex justify-center items-center gap-2" style={{ backgroundColor: themeColor }}>
+
+            <div className="p-4 border-t bg-gray-50 sticky bottom-0 z-20">
+              
+              {/* Delivery Fee Summary */}
+              {customer.fulfillmentType === 'delivery' && merchant?.delivery_enabled && customer.lat && (
+                <div className="flex justify-between items-center mb-3 pb-3 border-b border-gray-200 text-sm text-gray-600 font-medium">
+                  <span>Delivery Fee ({distanceKm.toFixed(1)} km)</span>
+                  <span className="font-bold text-gray-900">{currency}{deliveryFee.toLocaleString()}</span>
+                </div>
+              )}
+
+              <div className="flex justify-between items-center mb-4 text-lg"><span className="font-bold text-gray-600">Total to Pay</span><span className="font-black text-2xl text-gray-900">{currency}{finalTotal.toLocaleString()}</span></div>
+              <button form="checkout-form" type="submit" disabled={isSubmitting || (customer.fulfillmentType === 'delivery' && merchant?.delivery_enabled && !customer.lat)} className="w-full text-white px-6 py-4 rounded-xl font-bold text-lg shadow-md transition-opacity hover:opacity-90 disabled:bg-gray-400 disabled:cursor-not-allowed flex justify-center items-center gap-2" style={{ backgroundColor: themeColor }}>
                 {isSubmitting ? 'Processing...' : <><span className="flex items-center gap-2">Order via WhatsApp <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></span></>}
               </button>
             </div>
