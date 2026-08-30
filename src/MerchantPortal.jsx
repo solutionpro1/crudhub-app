@@ -21,6 +21,9 @@ export default function MerchantPortal() {
   const [isProductUploading, setIsProductUploading] = useState(false)
   
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
+  
+  // Free OpenStreetMap Autocomplete State for Merchant
+  const [addressSuggestions, setAddressSuggestions] = useState([])
 
   useEffect(() => { fetchMerchantDetails() }, [storeSlug])
 
@@ -63,6 +66,42 @@ export default function MerchantPortal() {
     return data.publicUrl;
   }
 
+  // Smart Location Mapping for Merchants
+  async function searchStoreAddress(query) {
+    setEditMerchant({...editMerchant, physical_address: query, store_lat: null, store_lng: null});
+    if (query.length < 4) { setAddressSuggestions([]); return; }
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      setAddressSuggestions(data);
+    } catch (e) { console.error(e); }
+  }
+
+  function selectStoreAddress(suggestion) {
+    setEditMerchant({
+      ...editMerchant, 
+      physical_address: suggestion.display_name, 
+      store_lat: parseFloat(suggestion.lat), 
+      store_lng: parseFloat(suggestion.lon)
+    });
+    setAddressSuggestions([]);
+  }
+
+  function getStoreLocation() {
+    if (!navigator.geolocation) return alert('Location services are not supported by your browser.');
+    navigator.geolocation.getCurrentPosition(async (position) => {
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+        const data = await res.json();
+        setEditMerchant({ ...editMerchant, physical_address: data.display_name || `Pinned Store Location`, store_lat: lat, store_lng: lng });
+      } catch(e) {
+        setEditMerchant({ ...editMerchant, physical_address: `Pinned Store Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`, store_lat: lat, store_lng: lng });
+      }
+    }, () => alert('Unable to retrieve your location. Please ensure location permissions are granted.'));
+  }
+
   async function handleUpdateSettings(e) {
     e.preventDefault(); setIsUploading(true); let logo_url = editMerchant.logo_url;
     if (logoFile) { const uploadedUrl = await uploadFile(logoFile, `logos/${editMerchant.slug}`); if (uploadedUrl) logo_url = uploadedUrl; }
@@ -83,7 +122,9 @@ export default function MerchantPortal() {
       hero_font: editMerchant.hero_font,
       hero_text_color: editMerchant.hero_text_color,
       delivery_enabled: editMerchant.delivery_enabled,
-      delivery_rate_per_km: editMerchant.delivery_rate_per_km
+      delivery_rate_per_km: editMerchant.delivery_rate_per_km,
+      store_lat: editMerchant.store_lat,
+      store_lng: editMerchant.store_lng
     }).eq('id', merchant.id)
     
     if (!error) { alert('Store settings updated successfully!'); setMerchant({...editMerchant, logo_url}); setLogoFile(null); }
@@ -333,12 +374,34 @@ export default function MerchantPortal() {
                   </div>
                 </div>
 
-                {/* CONTACT & LOCATION */}
+                {/* CONTACT & LOCATION WITH MAP API */}
                 <div className="p-5 bg-gray-50 rounded-xl border border-gray-100 space-y-4">
                   <h3 className="font-bold text-gray-900 text-lg">Contact & Location</h3>
-                  <p className="text-sm text-gray-500 mb-2">This information will appear in your storefront's footer.</p>
+                  <p className="text-sm text-gray-500 mb-2">Set your exact location so distance-based delivery can be calculated accurately.</p>
                   <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Business Email</label><input type="email" placeholder="contact@yourstore.com" className="w-full border p-2.5 rounded-lg text-sm bg-white focus:ring-2 focus:ring-black outline-none" value={editMerchant.contact_email || ''} onChange={e => setEditMerchant({...editMerchant, contact_email: e.target.value})} /></div>
-                  <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Physical Address</label><textarea placeholder="123 Main Street, City..." className="w-full border p-2.5 rounded-lg bg-white focus:ring-2 focus:ring-black outline-none text-sm h-16" value={editMerchant.physical_address || ''} onChange={e => setEditMerchant({...editMerchant, physical_address: e.target.value})} /></div>
+                  
+                  <div className="relative border-t border-gray-200 pt-4">
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Physical Store Location</label>
+                    <button type="button" onClick={getStoreLocation} className="w-full mb-2 bg-blue-50 text-blue-700 border border-blue-200 py-2.5 rounded-lg font-bold text-sm hover:bg-blue-100 flex items-center justify-center gap-2 transition-colors">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg> Pin Current GPS Location
+                    </button>
+                    <input required className="w-full border p-3 rounded-xl focus:ring-2 outline-none bg-white transition-colors" value={editMerchant.physical_address || ''} onChange={e => searchStoreAddress(e.target.value)} placeholder="Or search for an address..." />
+                    
+                    {addressSuggestions.length > 0 && (
+                      <ul className="absolute z-30 w-full bg-white border border-gray-200 rounded-lg shadow-xl mt-1 max-h-48 overflow-y-auto">
+                        {addressSuggestions.map((sug, i) => (
+                          <li key={i} onClick={() => selectStoreAddress(sug)} className="p-3 hover:bg-gray-50 cursor-pointer text-sm font-medium border-b border-gray-100 last:border-0">{sug.display_name}</li>
+                        ))}
+                      </ul>
+                    )}
+                    
+                    {editMerchant.store_lat && editMerchant.store_lng && (
+                      <div className="mt-2 inline-flex items-center gap-1.5 bg-green-50 text-green-700 px-3 py-1 rounded-full border border-green-200 text-xs font-bold">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        Exact Map Coordinates Saved
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* SMART DELIVERY ENGINE */}
