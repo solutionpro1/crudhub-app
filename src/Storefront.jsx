@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabase } from './supabaseClient'
 
+// Pure mathematical formula to calculate KM distance between two GPS coordinates
 function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
   const R = 6371; 
   const dLat = (lat2-lat1) * (Math.PI/180);
@@ -108,19 +109,50 @@ export default function Storefront() {
     setAddressSuggestions([]);
   }
 
+  // BULLETPROOF DUAL-FALLBACK GEOLOCATION
   function getLocation() {
     if (!navigator.geolocation) return alert('Location services are not supported by your browser.');
+    
+    // Briefly show "Locating..." to let customer know it's working
+    setCustomer(prev => ({ ...prev, address: 'Pinning location...' }));
+
     navigator.geolocation.getCurrentPosition(async (position) => {
       const lat = position.coords.latitude;
       const lng = position.coords.longitude;
+      
       try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+        // Attempt 1: OpenStreetMap (Detailed Street Address)
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, {
+          headers: { 'Accept-Language': 'en' }
+        });
+        if (!res.ok) throw new Error('OSM Network Error');
         const data = await res.json();
-        setCustomer({ ...customer, address: data.display_name || `Pinned Location`, lat: lat, lng: lng });
+        
+        if (data && data.display_name) {
+          setCustomer({ ...customer, address: data.display_name, lat, lng });
+          return;
+        }
+        throw new Error('OSM No Address Found');
+        
       } catch(e) {
-        setCustomer({ ...customer, address: `Pinned Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`, lat, lng });
+        // Attempt 2: BigDataCloud (City/Locality Fallback - Highly Reliable)
+        try {
+          const bdcRes = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`);
+          const bdcData = await bdcRes.json();
+          const fallbackAddress = bdcData.locality 
+            ? `${bdcData.locality}, ${bdcData.city || bdcData.principalSubdivision}, ${bdcData.countryName}` 
+            : `Pinned Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+          
+          setCustomer({ ...customer, address: fallbackAddress, lat, lng });
+        } catch (err) {
+          // Attempt 3: Absolute Fallback (Raw Coordinates)
+          setCustomer({ ...customer, address: `Pinned Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`, lat, lng });
+        }
       }
-    }, () => alert('Unable to retrieve your location. Please type it in manually.'));
+    }, () => {
+      setCustomer(prev => ({ ...prev, address: '' }));
+      alert('Unable to retrieve your location. Please ensure GPS permissions are allowed.');
+    });
   }
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0)
@@ -227,11 +259,7 @@ export default function Storefront() {
       {/* SLEEK PREMIUM HERO SECTION */}
       {merchant.hero_text && (
         <div className="w-full pt-24 pb-28 px-6 text-center relative overflow-hidden bg-white">
-          
-          {/* Ambient Theme Color Glow */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-full opacity-10 blur-3xl pointer-events-none" style={{ backgroundColor: themeColor }}></div>
-          
-          {/* Modern Subtle Grid Pattern */}
           <div className="absolute inset-0 pointer-events-none opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(to right, #000 1px, transparent 1px), linear-gradient(to bottom, #000 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
           
           <div className="relative z-10">
@@ -240,8 +268,6 @@ export default function Storefront() {
             </h2>
             <div className="w-20 h-1.5 mx-auto mt-8 rounded-full" style={{ backgroundColor: themeColor }}></div>
           </div>
-          
-          {/* Seamless Transition Fade */}
           <div className="absolute bottom-0 left-0 w-full h-16 bg-gradient-to-t from-gray-50 to-transparent pointer-events-none"></div>
         </div>
       )}
@@ -404,7 +430,7 @@ export default function Storefront() {
                       <button type="button" onClick={getLocation} className="w-full mb-2 bg-blue-50 text-blue-700 border border-blue-200 py-2.5 rounded-lg font-bold text-sm hover:bg-blue-100 flex items-center justify-center gap-2 transition-colors">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg> Pin My Current Location
                       </button>
-                      <input required className="w-full border p-3 rounded-xl focus:ring-2 outline-none bg-gray-50 focus:bg-white transition-colors" value={customer.address} onChange={e => searchAddress(e.target.value)} placeholder="Or search for an address..." />
+                      <input required className="w-full border p-3 rounded-xl focus:ring-2 outline-none bg-gray-50 focus:bg-white transition-colors text-sm" value={customer.address} onChange={e => searchAddress(e.target.value)} placeholder="Or search for an address..." />
                       
                       {addressSuggestions.length > 0 && (
                         <ul className="absolute z-30 w-full bg-white border border-gray-200 rounded-lg shadow-xl mt-1 max-h-48 overflow-y-auto">
