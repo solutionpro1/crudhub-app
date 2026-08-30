@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabase } from './supabaseClient'
 
-// Pure mathematical formula to calculate KM distance between two GPS coordinates
 function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
   const R = 6371; 
   const dLat = (lat2-lat1) * (Math.PI/180);
@@ -29,8 +28,6 @@ export default function Storefront() {
   const [customer, setCustomer] = useState({ name: '', address: '', notes: '', fulfillmentType: 'delivery', lat: null, lng: null })
   
   const [addressSuggestions, setAddressSuggestions] = useState([])
-  
-  // NEW: Variant Selection State
   const [selectedProductForVariant, setSelectedProductForVariant] = useState(null)
 
   useEffect(() => { fetchStoreData() }, [storeSlug])
@@ -57,7 +54,6 @@ export default function Storefront() {
     setLoading(false)
   }
 
-  // Intercept the Add to Cart click if variants exist
   function initiateAddToCart(product) {
     if (product.variants && product.variants.length > 0) {
       setSelectedProductForVariant(product);
@@ -220,23 +216,37 @@ export default function Storefront() {
   const fontStyle = merchant.hero_font === 'serif' ? 'serif' : merchant.hero_font === 'monospace' ? 'monospace' : 'sans-serif';
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24 font-sans flex flex-col">
-      <header className="bg-white border-b shadow-sm sticky top-0 z-10">
+    <div className="min-h-screen bg-gray-50 pb-24 font-sans flex flex-col relative">
+      <header className="bg-white border-b shadow-sm sticky top-0 z-20">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center gap-4">
           {merchant.logo_url ? <img src={merchant.logo_url} alt="Logo" className="w-12 h-12 rounded-full object-cover border" /> : <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-xl" style={{ backgroundColor: themeColor }}>{merchant.business_name.charAt(0)}</div>}
           <div><h1 className="text-xl font-bold text-gray-900">{merchant.business_name}</h1><p className="text-sm text-gray-500">Order directly via WhatsApp</p></div>
         </div>
       </header>
 
+      {/* SLEEK PREMIUM HERO SECTION */}
       {merchant.hero_text && (
-        <div className="w-full py-16 px-6 text-center shadow-inner" style={{ backgroundColor: themeColor, fontFamily: fontStyle }}>
-          <h2 className="text-3xl md:text-5xl font-black max-w-4xl mx-auto leading-tight" style={{ color: merchant.hero_text_color || '#ffffff' }}>
-            {merchant.hero_text}
-          </h2>
+        <div className="w-full pt-24 pb-28 px-6 text-center relative overflow-hidden bg-white">
+          
+          {/* Ambient Theme Color Glow */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-full opacity-10 blur-3xl pointer-events-none" style={{ backgroundColor: themeColor }}></div>
+          
+          {/* Modern Subtle Grid Pattern */}
+          <div className="absolute inset-0 pointer-events-none opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(to right, #000 1px, transparent 1px), linear-gradient(to bottom, #000 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
+          
+          <div className="relative z-10">
+            <h2 className="text-4xl md:text-6xl font-black max-w-4xl mx-auto leading-tight tracking-tight" style={{ color: merchant.hero_text_color || '#111827', fontFamily: fontStyle }}>
+              {merchant.hero_text}
+            </h2>
+            <div className="w-20 h-1.5 mx-auto mt-8 rounded-full" style={{ backgroundColor: themeColor }}></div>
+          </div>
+          
+          {/* Seamless Transition Fade */}
+          <div className="absolute bottom-0 left-0 w-full h-16 bg-gradient-to-t from-gray-50 to-transparent pointer-events-none"></div>
         </div>
       )}
 
-      <main className="max-w-4xl mx-auto px-4 py-8 flex-1 w-full">
+      <main className="max-w-4xl mx-auto px-4 py-8 flex-1 w-full relative z-10">
         <div className="mb-6 relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -317,7 +327,6 @@ export default function Storefront() {
         </div>
       )}
 
-      {/* VARIANT SELECTION MODAL */}
       {selectedProductForVariant && (
         <div className="fixed inset-0 bg-black/60 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-slide-in">
           <div className="w-full max-w-md bg-white sm:rounded-2xl rounded-t-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
@@ -352,7 +361,6 @@ export default function Storefront() {
         </div>
       )}
 
-      {/* CHECKOUT MODAL */}
       {isCheckoutOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex justify-end">
           <div className="w-full max-w-md bg-white h-full overflow-y-auto flex flex-col animate-slide-in">
