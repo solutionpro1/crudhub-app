@@ -40,6 +40,20 @@ export default function Admin() {
     }
   }
 
+  async function handleDeleteMerchant(id, businessName) {
+    if (!window.confirm(`Are you sure you want to PERMANENTLY delete "${businessName}"? This will erase all products, orders, and store data forever.`)) {
+      return
+    }
+
+    const { error } = await supabase.from('merchants').delete().eq('id', id)
+    if (!error) {
+      setMerchants(merchants.filter(m => m.id !== id))
+      alert('Merchant deleted successfully.')
+    } else {
+      alert('Failed to delete merchant: ' + error.message)
+    }
+  }
+
   async function handleSendBroadcast(e) {
     e.preventDefault()
     if (!broadcastMessage.trim()) return
@@ -56,12 +70,9 @@ export default function Admin() {
     setIsBroadcasting(false)
   }
 
-  // God-Mode Metrics Calculations
   const totalStores = merchants.length
   const activeStores = merchants.filter(m => m.status === 'active').length
   const suspendedStores = merchants.filter(m => m.status === 'suspended').length
-  
-  // Estimate platform revenue based on active subscriptions (Assuming ₦1,400 monthly baseline per active store)
   const estimatedRevenue = activeStores * 1400
 
   const filteredMerchants = merchants.filter(m => 
@@ -85,7 +96,6 @@ export default function Admin() {
 
       <div className="max-w-7xl mx-auto px-6 mt-8 space-y-8">
         
-        {/* GOD-MODE METRICS GRID */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Total Platform Value</p>
@@ -112,7 +122,6 @@ export default function Admin() {
           </div>
         </div>
 
-        {/* BROADCAST SYSTEM */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-bold text-gray-900 mb-2">Broadcast Notification to All Merchants</h2>
           <p className="text-sm text-gray-500 mb-4">Send an instant alert message directly to every merchant's notification inbox.</p>
@@ -134,7 +143,6 @@ export default function Admin() {
           </form>
         </div>
 
-        {/* MERCHANT MANAGEMENT TABLE */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gray-50/50">
             <h2 className="text-xl font-bold text-gray-800">Merchant Directory</h2>
@@ -191,6 +199,12 @@ export default function Admin() {
                           className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${m.status === 'suspended' ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100' : 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'}`}
                         >
                           {m.status === 'suspended' ? 'Activate' : 'Suspend'}
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteMerchant(m.id, m.business_name)}
+                          className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-700 transition-colors shadow-sm"
+                        >
+                          Delete
                         </button>
                       </td>
                     </tr>
