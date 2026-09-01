@@ -11,7 +11,7 @@ export default function Admin() {
 
   const navigate = useNavigate()
 
-  // Modal States for Direct Message & Subscription Management
+  // Modal States
   const [messagingMerchant, setMessagingMerchant] = useState(null)
   const [directMessageText, setDirectMessageText] = useState('')
   const [isSendingDM, setIsSendingDM] = useState(false)
@@ -87,18 +87,49 @@ export default function Admin() {
     setIsSendingDM(false)
   }
 
+  // Safe Date Formatter helper (guarantees YYYY-MM-DD)
+  function formatDateToInput(dateInput) {
+    try {
+      const d = dateInput ? new Date(dateInput) : new Date()
+      if (isNaN(d.getTime())) {
+        const fallback = new Date()
+        fallback.setDate(fallback.getDate() + 30)
+        return fallback.toISOString().split('T')[0]
+      }
+      return d.toISOString().split('T')[0]
+    } catch (e) {
+      const fallback = new Date()
+      fallback.setDate(fallback.getDate() + 30)
+      return fallback.toISOString().split('T')[0]
+    }
+  }
+
+  function openSubModal(merchant) {
+    setSubMerchant(merchant)
+    setSelectedPlan(merchant.subscription_plan || 'monthly')
+    setSelectedEndDate(formatDateToInput(merchant.subscription_end_date))
+  }
+
+  function addDaysToSelection(days) {
+    const current = selectedEndDate ? new Date(selectedEndDate) : new Date()
+    current.setDate(current.getDate() + days)
+    setSelectedEndDate(formatDateToInput(current))
+  }
+
   async function handleSaveSubscription(e) {
     e.preventDefault()
     if (!subMerchant) return
     setIsUpdatingSub(true)
 
+    const isoDate = selectedEndDate ? new Date(selectedEndDate).toISOString() : null
+
     const { error } = await supabase.from('merchants').update({ 
       subscription_plan: selectedPlan,
-      subscription_end_date: new Date(selectedEndDate).toISOString()
+      subscription_end_date: isoDate
     }).eq('id', subMerchant.id)
 
     if (!error) {
-      setMerchants(merchants.map(m => m.id === subMerchant.id ? { ...m, subscription_plan: selectedPlan, subscription_end_date: new Date(selectedEndDate).toISOString() } : m))
+      setMerchants(merchants.map(m => m.id === subMerchant.id ? { ...m, subscription_plan: selectedPlan, subscription_end_date: isoDate } : m))
       alert('Subscription plan and countdown updated successfully!')
       setSubMerchant(null)
     } else {
@@ -107,19 +138,6 @@ export default function Admin() {
     setIsUpdatingSub(false)
   }
 
-  function openSubModal(merchant) {
-    setSubMerchant(merchant)
-    setSelectedPlan(merchant.subscription_plan || 'monthly')
-    if (merchant.subscription_end_date) {
-      setSelectedEndDate(merchant.subscription_end_date.split('T')[0])
-    } else {
-      const d = new Date()
-      d.setDate(d.getDate() + 30)
-      setSelectedEndDate(d.toISOString().split('T')[0])
-    }
-  }
-
-  // GOD-MODE BYPASS: Set a secure session storage token and jump straight into merchant portal without PIN
   function handleGodModeAccess(slug) {
     sessionStorage.setItem('crudhub_god_mode', 'true')
     navigate(`/${slug}/manage`)
@@ -244,34 +262,38 @@ export default function Admin() {
                         </span>
                       </td>
                       <td className="p-4 text-right space-x-2 whitespace-nowrap">
-                        {/* BYPASS BUTTON */}
                         <button 
+                          type="button"
                           onClick={() => handleGodModeAccess(m.slug)}
-                          className="bg-black text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-gray-800 transition-colors shadow-sm"
+                          className="bg-black text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-gray-800 transition-colors shadow-sm cursor-pointer"
                         >
                           Admin Dashboard
                         </button>
                         <button 
+                          type="button"
                           onClick={() => openSubModal(m)}
-                          className="bg-purple-50 text-purple-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-purple-100 border border-purple-200 transition-colors"
+                          className="bg-purple-50 text-purple-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-purple-100 border border-purple-200 transition-colors cursor-pointer"
                         >
                           Manage Sub
                         </button>
                         <button 
+                          type="button"
                           onClick={() => setMessagingMerchant(m)}
-                          className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-100 border border-blue-200 transition-colors"
+                          className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-100 border border-blue-200 transition-colors cursor-pointer"
                         >
                           Message
                         </button>
                         <button 
+                          type="button"
                           onClick={() => handleToggleStatus(m.id, m.status || 'active')}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${m.status === 'suspended' ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100' : 'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100'}`}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${m.status === 'suspended' ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100' : 'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100'}`}
                         >
                           {m.status === 'suspended' ? 'Activate' : 'Suspend'}
                         </button>
                         <button 
+                          type="button"
                           onClick={() => handleDeleteMerchant(m.id, m.business_name)}
-                          className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-700 transition-colors shadow-sm"
+                          className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-700 transition-colors shadow-sm cursor-pointer"
                         >
                           Delete
                         </button>
@@ -287,14 +309,21 @@ export default function Admin() {
 
       </div>
 
-      {/* MODALS */}
+      {/* DIRECT MESSAGE MODAL */}
       {messagingMerchant && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md relative animate-slide-in">
             <h3 className="text-xl font-bold text-gray-900 mb-1">Direct Message</h3>
             <p className="text-sm text-gray-500 mb-4">Send a private alert straight to <strong>{messagingMerchant.business_name}</strong>'s notification bell.</p>
             <form onSubmit={handleSendDirectMessage} className="space-y-4">
-              <textarea required rows="4" placeholder="Type private message..." value={directMessageText} onChange={e => setDirectMessageText(e.target.value)} className="w-full border border-gray-300 p-3 rounded-xl outline-none focus:ring-2 focus:ring-black text-sm font-medium"/>
+              <textarea 
+                required 
+                rows="4" 
+                placeholder="Type private message..." 
+                value={directMessageText} 
+                onChange={e => setDirectMessageText(e.target.value)} 
+                className="w-full border border-gray-300 p-3 rounded-xl outline-none focus:ring-2 focus:ring-black text-sm font-medium"
+              />
               <div className="flex gap-3 justify-end">
                 <button type="button" onClick={() => setMessagingMerchant(null)} className="bg-gray-100 text-gray-700 px-4 py-2 rounded-xl font-bold text-sm">Cancel</button>
                 <button type="submit" disabled={isSendingDM} className="bg-black text-white px-6 py-2 rounded-xl font-bold text-sm">{isSendingDM ? 'Sending...' : 'Send Message'}</button>
@@ -304,28 +333,81 @@ export default function Admin() {
         </div>
       )}
 
+      {/* SUBSCRIPTION & COUNTDOWN MODAL */}
       {subMerchant && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md relative animate-slide-in">
-            <h3 className="text-xl font-bold text-gray-900 mb-1">Manage Subscription</h3>
-            <p className="text-sm text-gray-500 mb-4">Update plan and countdown for <strong>{subMerchant.business_name}</strong>.</p>
-            <form onSubmit={handleSaveSubscription} className="space-y-4">
+            <div className="flex justify-between items-start mb-2">
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">Subscription Plan</label>
-                <select value={selectedPlan} onChange={e => setSelectedPlan(e.target.value)} className="w-full border border-gray-300 p-3 rounded-xl outline-none font-bold text-sm bg-white">
+                <h3 className="text-xl font-bold text-gray-900">Manage Subscription</h3>
+                <p className="text-xs text-gray-500">Store: <strong>{subMerchant.business_name}</strong></p>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setSubMerchant(null)}
+                className="text-gray-400 hover:text-black font-bold p-1 rounded-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveSubscription} className="space-y-4 mt-4">
+              <div>
+                <label className="block text-xs font-bold uppercase text-gray-600 mb-1.5">Subscription Plan</label>
+                <select 
+                  value={selectedPlan} 
+                  onChange={e => setSelectedPlan(e.target.value)} 
+                  className="w-full border border-gray-300 p-3 rounded-xl outline-none focus:ring-2 focus:ring-black font-bold text-sm bg-white"
+                >
                   <option value="trial">Trial (14 Days)</option>
                   <option value="monthly">Monthly (₦1,400)</option>
                   <option value="yearly">Yearly (₦13,440)</option>
                   <option value="lifetime">Lifetime</option>
                 </select>
               </div>
+
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">Expiration Date</label>
-                <input type="date" required value={selectedEndDate} onChange={e => setSelectedEndDate(e.target.value)} className="w-full border border-gray-300 p-3 rounded-xl outline-none font-bold text-sm bg-white"/>
+                <label className="block text-xs font-bold uppercase text-gray-600 mb-1.5">Expiration Date</label>
+                <input 
+                  type="date" 
+                  required 
+                  value={selectedEndDate} 
+                  onChange={e => setSelectedEndDate(e.target.value)} 
+                  className="w-full border border-gray-300 p-3 rounded-xl outline-none focus:ring-2 focus:ring-black font-bold text-sm bg-white"
+                />
               </div>
-              <div className="flex gap-3 justify-end mt-6">
-                <button type="button" onClick={setSubMerchant(null)} className="bg-gray-100 text-gray-700 px-4 py-2 rounded-xl font-bold text-sm">Cancel</button>
-                <button type="submit" disabled={isUpdatingSub} className="bg-black text-white px-6 py-2 rounded-xl font-bold text-sm">{isUpdatingSub ? 'Saving...' : 'Save Changes'}</button>
+
+              {/* Quick Add Buttons */}
+              <div>
+                <p className="text-xs font-bold text-gray-500 mb-1.5">Quick Extension</p>
+                <div className="flex gap-2">
+                  <button 
+                    type="button" 
+                    onClick={() => addDaysToSelection(30)}
+                    className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold py-2 rounded-lg border border-gray-200"
+                  >
+                    +30 Days
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => addDaysToSelection(90)}
+                    className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold py-2 rounded-lg border border-gray-200"
+                  >
+                    +3 Months
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => addDaysToSelection(365)}
+                    className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold py-2 rounded-lg border border-gray-200"
+                  >
+                    +1 Year
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex gap-3 justify-end mt-6 pt-3 border-t border-gray-100">
+                <button type="button" onClick={() => setSubMerchant(null)} className="bg-gray-100 text-gray-700 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-gray-200">Cancel</button>
+                <button type="submit" disabled={isUpdatingSub} className="bg-black text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-gray-800 disabled:bg-gray-400">{isUpdatingSub ? 'Saving...' : 'Save Changes'}</button>
               </div>
             </form>
           </div>
