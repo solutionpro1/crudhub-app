@@ -36,34 +36,27 @@ export default function MerchantPortal() {
   const [mapSearchQuery, setMapSearchQuery] = useState('')
   const [addressSuggestions, setAddressSuggestions] = useState([])
 
-  useEffect(() => { fetchMerchantDetails() }, [storeSlug])
-
   // 5-MINUTE INACTIVITY AUTO-LOGOUT TIMER
   useEffect(() => {
     if (!isAuthenticated) return
-
     let timeoutId
-
     const resetTimer = () => {
       if (timeoutId) clearTimeout(timeoutId)
-      // 5 minutes = 300,000 milliseconds
       timeoutId = setTimeout(() => {
         handleLogout()
         alert('You have been logged out due to 5 minutes of inactivity for security reasons.')
       }, 5 * 60 * 1000)
     }
-
-    // Events that signal user activity
     const events = ['mousemove', 'keydown', 'mousedown', 'scroll', 'touchstart']
-    
     events.forEach(event => window.addEventListener(event, resetTimer))
-    resetTimer() // Initialize timer on mount
-
+    resetTimer()
     return () => {
       if (timeoutId) clearTimeout(timeoutId)
       events.forEach(event => window.removeEventListener(event, resetTimer))
     }
   }, [isAuthenticated])
+
+  useEffect(() => { fetchMerchantDetails() }, [storeSlug])
 
   async function fetchMerchantDetails() {
     const { data, error } = await supabase.from('merchants').select('*').eq('slug', storeSlug).single()
@@ -73,27 +66,64 @@ export default function MerchantPortal() {
       return
     }
 
-    setMerchant(data)
-    setEditMerchant(data)
+    let currentMerchant = { ...data }
+    setMerchant(currentMerchant)
+    setEditMerchant(currentMerchant)
 
     const isGodMode = sessionStorage.getItem('crudhub_god_mode') === 'true'
     const isMerchantSession = sessionStorage.getItem(`crudhub_auth_${storeSlug}`) === 'true'
 
-    if (isGodMode || isMerchantSession) {
-      checkFirstTimeSetup(data)
+    // Check if user just returned from linking Google on the setup screen
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session && session.user && session.user.email && (!currentMerchant.contact_email || !currentMerchant.pin_code)) {
+      const email = session.user.email.toLowerCase()
+      const { error: updateError } = await supabase.from('merchants').update({
+        contact_email: email,
+        pin_code: 'google-oauth-user'
+      }).eq('id', currentMerchant.id)
+
+      if (!updateError) {
+        currentMerchant.contact_email = email
+        currentMerchant.pin_code = 'google-oauth-user'
+        setMerchant(currentMerchant)
+        setEditMerchant(currentMerchant)
+        sessionStorage.setItem(`crudhub_auth_${storeSlug}`, 'true')
+        setIsAuthenticated(true)
+        fetchOrders(currentMerchant.id)
+        fetchProducts(currentMerchant.id)
+        setLoading(false)
+        return // Stop execution, auth is complete
+      }
+    }
+
+    // AUTH LOGIC
+    if (isGodMode) {
+      // Admin bypasses everything straight to the dashboard
+      setIsAuthenticated(true)
+      fetchOrders(currentMerchant.id)
+      fetchProducts(currentMerchant.id)
+    } else if (isMerchantSession) {
+      if (!currentMerchant.contact_email || !currentMerchant.pin_code) {
+        // Merchant is logged in but hasn't set up email yet
+        setIsFirstTimeSetup(true)
+      } else {
+        setIsAuthenticated(true)
+        fetchOrders(currentMerchant.id)
+        fetchProducts(currentMerchant.id)
+      }
     }
 
     setLoading(false)
   }
 
-  function checkFirstTimeSetup(merchantData) {
-    if (!merchantData.contact_email || !merchantData.pin_code) {
-      setIsFirstTimeSetup(true)
-    } else {
-      setIsAuthenticated(true)
-      fetchOrders(merchantData.id)
-      fetchProducts(merchantData.id)
-    }
+  async function handleGoogleLink() {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.href // Brings them right back to this portal page
+      }
+    })
+    if (error) alert('Google Sign-In Error: ' + error.message)
   }
 
   async function handleFirstTimeSetupSubmit(e) {
@@ -122,7 +152,13 @@ export default function MerchantPortal() {
     e.preventDefault()
     if (merchant.contact_email && loginEmail.toLowerCase() === merchant.contact_email.toLowerCase() && loginPassword === merchant.pin_code) { 
       sessionStorage.setItem(`crudhub_auth_${storeSlug}`, 'true')
-      checkFirstTimeSetup(merchant)
+      if (!merchant.contact_email || !merchant.pin_code) {
+        setIsFirstTimeSetup(true)
+      } else {
+        setIsAuthenticated(true)
+        fetchOrders(merchant.id)
+        fetchProducts(merchant.id)
+      }
     } else {
       setAuthError('Incorrect Email or Password.')
     }
@@ -138,7 +174,6 @@ export default function MerchantPortal() {
       setPasswordMessage('Current password is incorrect.')
       return
     }
-
     const { error } = await supabase.from('merchants').update({ pin_code: passwordForm.newPass }).eq('id', merchant.id)
     if (!error) {
       setPasswordMessage('Password updated successfully!')
@@ -267,13 +302,22 @@ export default function MerchantPortal() {
   if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-xl">Loading space...</div>
   if (!merchant) return <div className="min-h-screen flex items-center justify-center font-bold text-xl text-red-600">Store not found.</div>
 
+  // FIRST-TIME SETUP MODAL
   if (isFirstTimeSetup) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-sans">
         <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-gray-200 p-8 text-center animate-slide-in">
           <h2 className="text-2xl font-black text-gray-900 mb-2">Security Setup Required</h2>
-          <p className="text-gray-500 mb-6 text-sm">Please configure your email and password to secure your store dashboard.</p>
-          <form onSubmit={handleFirstTimeSetupSubmit} className="space-y-4 text-left">
+          <p className="text-gray-500 mb-6 text-sm">Please secure your store dashboard by linking your Google account or setting an email and password.</p>
+          
+          <button onClick={handleGoogleLink} className="w-full bg-white border border-gray-300 text-gray-700 font-bold py-3 rounded-xl mb-4 hover:bg-gray-50 flex items-center justify-center gap-2 shadow-sm cursor-pointer">
+            <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.19v3.15C3.17 21.35 7.23 24 12 24z"/><path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.19C.43 8.12 0 9.87 0 11.7s.43 3.58 1.19 5.12l4.09-2.55z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.23 0 3.17 2.65 1.19 6.58l4.09 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/></svg>
+            Link with Google
+          </button>
+
+          <div className="relative flex py-2 items-center"><div className="flex-grow border-t border-gray-200"></div><span className="flex-shrink mx-4 text-gray-400 text-xs uppercase font-bold">Or Setup Email</span><div className="flex-grow border-t border-gray-200"></div></div>
+
+          <form onSubmit={handleFirstTimeSetupSubmit} className="space-y-4 text-left mt-2">
             <div>
               <label className="block text-sm font-bold mb-1 text-gray-700">Email Address</label>
               <input required type="email" className="w-full border p-3 rounded-xl bg-gray-50 outline-none font-bold" value={setupEmail} onChange={e => setSetupEmail(e.target.value)} placeholder="you@business.com" />
@@ -290,6 +334,7 @@ export default function MerchantPortal() {
     )
   }
 
+  // STANDARD LOGIN LOCK SCREEN
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-sans">
