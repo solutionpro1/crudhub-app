@@ -71,34 +71,43 @@ export default function MerchantPortal() {
     setEditMerchant(currentMerchant)
 
     const isGodMode = sessionStorage.getItem('crudhub_god_mode') === 'true'
-    const isMerchantSession = sessionStorage.getItem(`crudhub_auth_${storeSlug}`) === 'true'
+    let isMerchantSession = sessionStorage.getItem(`crudhub_auth_${storeSlug}`) === 'true'
 
-    // Check if user just returned from linking Google on the setup screen
+    // Check if user just returned from Google Auth
     const { data: { session } } = await supabase.auth.getSession()
-    if (session && session.user && session.user.email && (!currentMerchant.contact_email || !currentMerchant.pin_code)) {
+    if (session && session.user && session.user.email) {
       const email = session.user.email.toLowerCase()
-      const { error: updateError } = await supabase.from('merchants').update({
-        contact_email: email,
-        pin_code: 'google-oauth-user'
-      }).eq('id', currentMerchant.id)
+      
+      if (!currentMerchant.contact_email || !currentMerchant.pin_code) {
+        // First time linking Google account to an old store
+        const { error: updateError } = await supabase.from('merchants').update({
+          contact_email: email,
+          pin_code: 'google-oauth-user'
+        }).eq('id', currentMerchant.id)
 
-      if (!updateError) {
-        currentMerchant.contact_email = email
-        currentMerchant.pin_code = 'google-oauth-user'
-        setMerchant(currentMerchant)
-        setEditMerchant(currentMerchant)
+        if (!updateError) {
+          currentMerchant.contact_email = email
+          currentMerchant.pin_code = 'google-oauth-user'
+          setMerchant(currentMerchant)
+          setEditMerchant(currentMerchant)
+          isMerchantSession = true
+          sessionStorage.setItem(`crudhub_auth_${storeSlug}`, 'true')
+        }
+      } else if (currentMerchant.contact_email.toLowerCase() === email) {
+        // Normal Google Login (Emails match!)
+        isMerchantSession = true
         sessionStorage.setItem(`crudhub_auth_${storeSlug}`, 'true')
-        setIsAuthenticated(true)
-        fetchOrders(currentMerchant.id)
-        fetchProducts(currentMerchant.id)
-        setLoading(false)
-        return // Stop execution, auth is complete
+      } else if (!isGodMode && !isMerchantSession) {
+        // If they use the wrong Google account
+        setAuthError('This Google account is not associated with this store.')
+        await supabase.auth.signOut()
       }
     }
 
     // AUTH LOGIC
     if (isGodMode) {
       // Admin bypasses everything straight to the dashboard
+      setIsFirstTimeSetup(false)
       setIsAuthenticated(true)
       fetchOrders(currentMerchant.id)
       fetchProducts(currentMerchant.id)
@@ -114,6 +123,16 @@ export default function MerchantPortal() {
     }
 
     setLoading(false)
+  }
+
+  async function handleGoogleLogin() {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.href // Redirect right back to this lock screen
+      }
+    })
+    if (error) alert('Google Sign-In Error: ' + error.message)
   }
 
   async function handleGoogleLink() {
@@ -184,7 +203,8 @@ export default function MerchantPortal() {
     }
   }
 
-  function handleLogout() {
+  async function handleLogout() {
+    await supabase.auth.signOut()
     sessionStorage.removeItem(`crudhub_auth_${storeSlug}`)
     sessionStorage.removeItem('crudhub_god_mode')
     setIsAuthenticated(false)
@@ -346,7 +366,15 @@ export default function MerchantPortal() {
           )}
           <h1 className="text-2xl font-bold text-gray-900 mb-2">{merchant.business_name}</h1>
           <p className="text-gray-500 mb-6 font-medium">Enter your credentials to access your workspace.</p>
-          <form onSubmit={handleLogin} className="space-y-4 text-left">
+          
+          <button onClick={handleGoogleLogin} className="w-full bg-white border border-gray-300 text-gray-700 font-bold py-3 rounded-xl mb-4 hover:bg-gray-50 flex items-center justify-center gap-2 shadow-sm cursor-pointer">
+            <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.19v3.15C3.17 21.35 7.23 24 12 24z"/><path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.19C.43 8.12 0 9.87 0 11.7s.43 3.58 1.19 5.12l4.09-2.55z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.23 0 3.17 2.65 1.19 6.58l4.09 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/></svg>
+            Continue with Google
+          </button>
+
+          <div className="relative flex py-2 items-center"><div className="flex-grow border-t border-gray-200"></div><span className="flex-shrink mx-4 text-gray-400 text-xs uppercase font-bold">Or with Email</span><div className="flex-grow border-t border-gray-200"></div></div>
+
+          <form onSubmit={handleLogin} className="space-y-4 text-left mt-2">
             <div>
               <label className="block text-sm font-bold mb-1.5 text-gray-700">Email Address</label>
               <input required type="email" className="w-full border p-3 rounded-xl bg-gray-50 outline-none focus:ring-2 focus:ring-black" value={loginEmail} onChange={e => { setLoginEmail(e.target.value); setAuthError('') }} />
