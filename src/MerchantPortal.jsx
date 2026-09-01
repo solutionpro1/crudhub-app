@@ -10,7 +10,6 @@ export default function MerchantPortal() {
   const [pinInput, setPinInput] = useState('')
   const [authError, setAuthError] = useState('')
   
-  // DEFAULT TAB IS DASHBOARD
   const [activeTab, setActiveTab] = useState('dashboard')
   
   const [orders, setOrders] = useState([])
@@ -19,7 +18,6 @@ export default function MerchantPortal() {
   const [logoFile, setLogoFile] = useState(null)
   const [isUploading, setIsUploading] = useState(false)
   
-  // PRODUCT & VARIANT STATE
   const [newProduct, setNewProduct] = useState({ name: '', description: '', price: '', category: '', variants: [] })
   const [variantInput, setVariantInput] = useState({ label: '', price: '' })
   
@@ -43,7 +41,6 @@ export default function MerchantPortal() {
     setMerchant(data)
     setEditMerchant(data)
 
-    // GOD-MODE BYPASS: If coming from Super Admin, unlock automatically without PIN
     const isGodMode = sessionStorage.getItem('crudhub_god_mode') === 'true'
     if (isGodMode) {
       setIsAuthenticated(true)
@@ -79,6 +76,20 @@ export default function MerchantPortal() {
     const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId)
     if (!error) fetchOrders(merchant.id)
     else alert('Failed to update status: ' + error.message)
+  }
+
+  async function handleResetAnalytics() {
+    if (!window.confirm("Are you sure you want to reset your analytics? This will delete past order records and start your revenue and sales metrics from zero.")) {
+      return
+    }
+
+    const { error } = await supabase.from('orders').delete().eq('merchant_id', merchant.id)
+    if (!error) {
+      setOrders([])
+      alert('Dashboard analytics reset to zero successfully!')
+    } else {
+      alert('Failed to reset analytics: ' + error.message)
+    }
   }
 
   async function uploadFile(file, pathPrefix) {
@@ -138,6 +149,7 @@ export default function MerchantPortal() {
       logo_url: logo_url, 
       pin_code: editMerchant.pin_code, 
       currency: editMerchant.currency,
+      phone_number: editMerchant.phone_number,
       facebook_url: editMerchant.facebook_url, 
       instagram_url: editMerchant.instagram_url, 
       linkedin_url: editMerchant.linkedin_url,
@@ -367,6 +379,22 @@ export default function MerchantPortal() {
           {/* DASHBOARD ANALYTICS TAB */}
           {activeTab === 'dashboard' && (
             <div className="space-y-6">
+              
+              {/* DASHBOARD HEADER WITH RESET BUTTON */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Performance Overview</h2>
+                  <p className="text-xs text-gray-500 font-medium">Real-time revenue, order volume, and item analytics</p>
+                </div>
+                <button 
+                  onClick={handleResetAnalytics}
+                  className="bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 px-4 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 shrink-0"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                  Reset Analytics
+                </button>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
                   <div className="flex justify-between items-start mb-4">
@@ -572,6 +600,7 @@ export default function MerchantPortal() {
 
                 <div className="p-5 bg-gray-50 rounded-xl border border-gray-100 space-y-4">
                   <h3 className="font-bold text-gray-900 text-lg">Contact & Footer Info</h3>
+                  <div><label className="block text-sm font-bold mb-1.5 text-gray-700">WhatsApp / Phone Number</label><input type="tel" placeholder="+23490..." className="w-full border p-2.5 rounded-lg text-sm bg-white focus:ring-2 focus:ring-black outline-none" value={editMerchant.phone_number || ''} onChange={e => setEditMerchant({...editMerchant, phone_number: e.target.value})} /></div>
                   <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Business Email</label><input type="email" placeholder="contact@yourstore.com" className="w-full border p-2.5 rounded-lg text-sm bg-white focus:ring-2 focus:ring-black outline-none" value={editMerchant.contact_email || ''} onChange={e => setEditMerchant({...editMerchant, contact_email: e.target.value})} /></div>
                   <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Display Address</label><textarea placeholder="Shop 12, Main Market, Lagos... (Shows on your storefront footer)" className="w-full border p-2.5 rounded-lg bg-white focus:ring-2 focus:ring-black outline-none text-sm h-16" value={editMerchant.physical_address || ''} onChange={e => setEditMerchant({...editMerchant, physical_address: e.target.value})} /></div>
                 </div>
@@ -606,6 +635,17 @@ export default function MerchantPortal() {
                       </div>
                     </div>
                   )}
+                </div>
+
+                <div className="p-5 bg-gray-50 rounded-xl border border-gray-100 space-y-4">
+                  <h3 className="font-bold text-gray-900 text-lg">Social Links</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Instagram URL</label><input placeholder="https://instagram.com/..." className="w-full border p-2.5 rounded-lg text-sm bg-white focus:ring-2 focus:ring-black outline-none" value={editMerchant.instagram_url || ''} onChange={e => setEditMerchant({...editMerchant, instagram_url: e.target.value})} /></div>
+                    <div><label className="block text-sm font-bold mb-1.5 text-gray-700">TikTok URL</label><input placeholder="https://tiktok.com/@..." className="w-full border p-2.5 rounded-lg text-sm bg-white focus:ring-2 focus:ring-black outline-none" value={editMerchant.tiktok_url || ''} onChange={e => setEditMerchant({...editMerchant, tiktok_url: e.target.value})} /></div>
+                    <div><label className="block text-sm font-bold mb-1.5 text-gray-700">Facebook URL</label><input placeholder="https://facebook.com/..." className="w-full border p-2.5 rounded-lg text-sm bg-white focus:ring-2 focus:ring-black outline-none" value={editMerchant.facebook_url || ''} onChange={e => setEditMerchant({...editMerchant, facebook_url: e.target.value})} /></div>
+                    <div><label className="block text-sm font-bold mb-1.5 text-gray-700">X (Twitter) URL</label><input placeholder="https://x.com/..." className="w-full border p-2.5 rounded-lg text-sm bg-white focus:ring-2 focus:ring-black outline-none" value={editMerchant.x_url || ''} onChange={e => setEditMerchant({...editMerchant, x_url: e.target.value})} /></div>
+                    <div className="md:col-span-2"><label className="block text-sm font-bold mb-1.5 text-gray-700">LinkedIn URL</label><input placeholder="https://linkedin.com/company/..." className="w-full border p-2.5 rounded-lg text-sm bg-white focus:ring-2 focus:ring-black outline-none" value={editMerchant.linkedin_url || ''} onChange={e => setEditMerchant({...editMerchant, linkedin_url: e.target.value})} /></div>
+                  </div>
                 </div>
 
                 <div className="p-5 bg-gray-50 rounded-xl border border-gray-100 space-y-4">
