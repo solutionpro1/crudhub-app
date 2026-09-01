@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './supabaseClient'
+import { useNavigate } from 'react-router-dom'
 
 export default function Admin() {
   const [merchants, setMerchants] = useState([])
@@ -7,6 +8,8 @@ export default function Admin() {
   const [searchTerm, setSearchTerm] = useState('')
   const [broadcastMessage, setBroadcastMessage] = useState('')
   const [isBroadcasting, setIsBroadcasting] = useState(false)
+
+  const navigate = useNavigate()
 
   // Modal States for Direct Message & Subscription Management
   const [messagingMerchant, setMessagingMerchant] = useState(null)
@@ -107,7 +110,6 @@ export default function Admin() {
   function openSubModal(merchant) {
     setSubMerchant(merchant)
     setSelectedPlan(merchant.subscription_plan || 'monthly')
-    // Format existing date for date input (YYYY-MM-DD)
     if (merchant.subscription_end_date) {
       setSelectedEndDate(merchant.subscription_end_date.split('T')[0])
     } else {
@@ -115,6 +117,12 @@ export default function Admin() {
       d.setDate(d.getDate() + 30)
       setSelectedEndDate(d.toISOString().split('T')[0])
     }
+  }
+
+  // GOD-MODE BYPASS: Set a secure session storage token and jump straight into merchant portal without PIN
+  function handleGodModeAccess(slug) {
+    sessionStorage.setItem('crudhub_god_mode', 'true')
+    navigate(`/${slug}/manage`)
   }
 
   const totalStores = merchants.length
@@ -167,7 +175,7 @@ export default function Admin() {
           </div>
         </div>
 
-        {/* GLOBAL BROADCAST */}
+        {/* BROADCAST */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-bold text-gray-900 mb-2">Broadcast Notification to All Merchants</h2>
           <p className="text-sm text-gray-500 mb-4">Send an instant alert message directly to every merchant's notification inbox.</p>
@@ -185,7 +193,7 @@ export default function Admin() {
           </form>
         </div>
 
-        {/* MERCHANT DIRECTORY */}
+        {/* DIRECTORY */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gray-50/50">
             <h2 className="text-xl font-bold text-gray-800">Merchant Directory</h2>
@@ -236,6 +244,13 @@ export default function Admin() {
                         </span>
                       </td>
                       <td className="p-4 text-right space-x-2 whitespace-nowrap">
+                        {/* BYPASS BUTTON */}
+                        <button 
+                          onClick={() => handleGodModeAccess(m.slug)}
+                          className="bg-black text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-gray-800 transition-colors shadow-sm"
+                        >
+                          Admin Dashboard
+                        </button>
                         <button 
                           onClick={() => openSubModal(m)}
                           className="bg-purple-50 text-purple-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-purple-100 border border-purple-200 transition-colors"
@@ -272,44 +287,32 @@ export default function Admin() {
 
       </div>
 
-      {/* DIRECT MESSAGE MODAL */}
+      {/* MODALS */}
       {messagingMerchant && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md relative animate-slide-in">
             <h3 className="text-xl font-bold text-gray-900 mb-1">Direct Message</h3>
             <p className="text-sm text-gray-500 mb-4">Send a private alert straight to <strong>{messagingMerchant.business_name}</strong>'s notification bell.</p>
             <form onSubmit={handleSendDirectMessage} className="space-y-4">
-              <textarea 
-                required 
-                rows="4"
-                placeholder="Type private message to this merchant..." 
-                value={directMessageText} 
-                onChange={e => setDirectMessageText(e.target.value)} 
-                className="w-full border border-gray-300 p-3 rounded-xl outline-none focus:ring-2 focus:ring-black text-sm font-medium"
-              />
+              <textarea required rows="4" placeholder="Type private message..." value={directMessageText} onChange={e => setDirectMessageText(e.target.value)} className="w-full border border-gray-300 p-3 rounded-xl outline-none focus:ring-2 focus:ring-black text-sm font-medium"/>
               <div className="flex gap-3 justify-end">
-                <button type="button" onClick={() => setMessagingMerchant(null)} className="bg-gray-100 text-gray-700 px-4 py-2 rounded-xl font-bold text-sm hover:bg-gray-200">Cancel</button>
-                <button type="submit" disabled={isSendingDM} className="bg-black text-white px-6 py-2 rounded-xl font-bold text-sm hover:bg-gray-800 disabled:bg-gray-400">{isSendingDM ? 'Sending...' : 'Send Message'}</button>
+                <button type="button" onClick={() => setMessagingMerchant(null)} className="bg-gray-100 text-gray-700 px-4 py-2 rounded-xl font-bold text-sm">Cancel</button>
+                <button type="submit" disabled={isSendingDM} className="bg-black text-white px-6 py-2 rounded-xl font-bold text-sm">{isSendingDM ? 'Sending...' : 'Send Message'}</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* SUBSCRIPTION & COUNTDOWN MODAL */}
       {subMerchant && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md relative animate-slide-in">
             <h3 className="text-xl font-bold text-gray-900 mb-1">Manage Subscription</h3>
-            <p className="text-sm text-gray-500 mb-4">Update plan and countdown end date for <strong>{subMerchant.business_name}</strong>.</p>
+            <p className="text-sm text-gray-500 mb-4">Update plan and countdown for <strong>{subMerchant.business_name}</strong>.</p>
             <form onSubmit={handleSaveSubscription} className="space-y-4">
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-1">Subscription Plan</label>
-                <select 
-                  value={selectedPlan} 
-                  onChange={e => setSelectedPlan(e.target.value)}
-                  className="w-full border border-gray-300 p-3 rounded-xl outline-none focus:ring-2 focus:ring-black font-bold text-sm bg-white"
-                >
+                <select value={selectedPlan} onChange={e => setSelectedPlan(e.target.value)} className="w-full border border-gray-300 p-3 rounded-xl outline-none font-bold text-sm bg-white">
                   <option value="trial">Trial (14 Days)</option>
                   <option value="monthly">Monthly (₦1,400)</option>
                   <option value="yearly">Yearly (₦13,440)</option>
@@ -317,18 +320,12 @@ export default function Admin() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">Expiration Date Countdown</label>
-                <input 
-                  type="date" 
-                  required 
-                  value={selectedEndDate} 
-                  onChange={e => setSelectedEndDate(e.target.value)}
-                  className="w-full border border-gray-300 p-3 rounded-xl outline-none focus:ring-2 focus:ring-black font-bold text-sm bg-white"
-                />
+                <label className="block text-sm font-bold text-gray-700 mb-1">Expiration Date</label>
+                <input type="date" required value={selectedEndDate} onChange={e => setSelectedEndDate(e.target.value)} className="w-full border border-gray-300 p-3 rounded-xl outline-none font-bold text-sm bg-white"/>
               </div>
               <div className="flex gap-3 justify-end mt-6">
-                <button type="button" onClick={() => setSubMerchant(null)} className="bg-gray-100 text-gray-700 px-4 py-2 rounded-xl font-bold text-sm hover:bg-gray-200">Cancel</button>
-                <button type="submit" disabled={isUpdatingSub} className="bg-black text-white px-6 py-2 rounded-xl font-bold text-sm hover:bg-gray-800 disabled:bg-gray-400">{isUpdatingSub ? 'Saving...' : 'Save Changes'}</button>
+                <button type="button" onClick={setSubMerchant(null)} className="bg-gray-100 text-gray-700 px-4 py-2 rounded-xl font-bold text-sm">Cancel</button>
+                <button type="submit" disabled={isUpdatingSub} className="bg-black text-white px-6 py-2 rounded-xl font-bold text-sm">{isUpdatingSub ? 'Saving...' : 'Save Changes'}</button>
               </div>
             </form>
           </div>
