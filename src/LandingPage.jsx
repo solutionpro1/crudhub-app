@@ -30,6 +30,15 @@ export default function LandingPage() {
   const [loginError, setLoginError] = useState('')
   const [isLoggingIn, setIsLoggingIn] = useState(false)
 
+  // Forgot Password States
+  const [isForgotOpen, setIsForgotOpen] = useState(false)
+  const [forgotStep, setForgotStep] = useState(1) // 1: Email, 2: OTP, 3: New Password
+  const [forgotEmail, setForgotEmail] = useState('')
+  const [forgotOtpCode, setForgotOtpCode] = useState('')
+  const [forgotNewPassword, setForgotNewPassword] = useState('')
+  const [forgotError, setForgotError] = useState('')
+  const [isForgotSubmitting, setIsForgotSubmitting] = useState(false)
+
   const navigate = useNavigate()
 
   const countryList = [
@@ -198,6 +207,78 @@ export default function LandingPage() {
     navigate(`/${data.slug}/manage`)
   }
 
+  // --- PASSWORD RECOVERY FUNCTIONS ---
+  function cancelForgot() {
+    setIsForgotOpen(false)
+    setForgotStep(1)
+    setForgotEmail('')
+    setForgotOtpCode('')
+    setForgotNewPassword('')
+    setForgotError('')
+  }
+
+  async function handleForgotStep1(e) {
+    e.preventDefault()
+    setIsForgotSubmitting(true)
+    setForgotError('')
+    
+    // Check if email exists in our merchant database
+    const { data, error } = await supabase.from('merchants').select('id').eq('contact_email', forgotEmail.toLowerCase()).single()
+    if (error || !data) {
+      setForgotError('No store found with this email address.')
+      setIsForgotSubmitting(false)
+      return
+    }
+
+    // Send OTP
+    const { error: otpError } = await supabase.auth.signInWithOtp({ email: forgotEmail.toLowerCase() })
+    if (otpError) {
+      setForgotError(otpError.message)
+    } else {
+      setForgotStep(2)
+    }
+    setIsForgotSubmitting(false)
+  }
+
+  async function handleForgotStep2(e) {
+    e.preventDefault()
+    setIsForgotSubmitting(true)
+    setForgotError('')
+
+    const { error } = await supabase.auth.verifyOtp({
+      email: forgotEmail.toLowerCase(),
+      token: forgotOtpCode,
+      type: 'email'
+    })
+
+    if (error) {
+      setForgotError('Invalid or expired verification code. Please try again.')
+      setIsForgotSubmitting(false)
+    } else {
+      setForgotError('')
+      setForgotStep(3)
+      setIsForgotSubmitting(false)
+    }
+  }
+
+  async function handleForgotStep3(e) {
+    e.preventDefault()
+    setIsForgotSubmitting(true)
+    setForgotError('')
+
+    // Update the custom pin_code in merchants table
+    const { error } = await supabase.from('merchants').update({ pin_code: forgotNewPassword }).eq('contact_email', forgotEmail.toLowerCase())
+    
+    if (error) {
+      setForgotError(error.message)
+      setIsForgotSubmitting(false)
+    } else {
+      alert('Password successfully reset! You can now log in.')
+      cancelForgot()
+      setIsLoginOpen(true) // Reopen the login modal so they can test it
+    }
+  }
+
   function handleBusinessNameChange(e) {
     const name = e.target.value
     setNewStore({
@@ -209,8 +290,6 @@ export default function LandingPage() {
 
   const salesMessage = "Hello SolutionPRO! I would like to talk to sales about setting up my Crudhub store."
   const whatsappSalesUrl = `https://wa.me/2349028116376?text=${encodeURIComponent(salesMessage)}`
-  const forgotPinMessage = "Hello Support, I forgot my Crudhub Merchant login details. Can you help me recover my account?"
-  const whatsappForgotPinUrl = `https://wa.me/2349028116376?text=${encodeURIComponent(forgotPinMessage)}`
 
   const CloseIcon = () => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -266,17 +345,17 @@ export default function LandingPage() {
                 <form onSubmit={handleAuthStepSubmit} className="space-y-4 mt-2">
                   <div className={otpSent ? 'opacity-50 pointer-events-none' : ''}>
                     <label className="block text-sm font-bold mb-1.5 text-gray-700">Email Address</label>
-                    <input required type="email" className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-black outline-none bg-gray-50 focus:bg-white text-sm" value={signupEmail} onChange={e => setSignupEmail(e.target.value)} placeholder="you@business.com" readOnly={otpSent} />
+                    <input required type="email" className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-black outline-none bg-gray-50 focus:bg-white text-sm" value={signupEmail} onChange={e => setSignupEmail(e.target.value)} readOnly={otpSent} />
                   </div>
                   <div className={otpSent ? 'hidden' : 'block'}>
                     <label className="block text-sm font-bold mb-1.5 text-gray-700">Create a Password</label>
-                    <input required type="password" minLength="6" className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-black outline-none bg-gray-50 focus:bg-white font-mono tracking-widest" value={signupPassword} onChange={e => setSignupPassword(e.target.value)} placeholder="••••••••" />
+                    <input required type="password" minLength="6" className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-black outline-none bg-gray-50 focus:bg-white font-mono tracking-widest" value={signupPassword} onChange={e => setSignupPassword(e.target.value)} />
                   </div>
 
                   {otpSent && (
                     <div className="animate-slide-in mt-4 bg-blue-50 p-4 rounded-xl border border-blue-100">
                       <label className="block text-sm font-bold mb-1.5 text-blue-900">Enter 6-Digit Email Code</label>
-                      <input required type="text" maxLength="6" className="w-full border border-blue-200 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white font-mono text-center text-xl tracking-[0.5em] font-bold" value={otpCode} onChange={e => setOtpCode(e.target.value.replace(/\D/g, ''))} placeholder="000000" />
+                      <input required type="text" maxLength="6" className="w-full border border-blue-200 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white font-mono text-center text-xl tracking-[0.5em] font-bold" value={otpCode} onChange={e => setOtpCode(e.target.value.replace(/\D/g, ''))} />
                       <p className="text-xs text-blue-600 font-bold mt-2 text-center">{otpMessage}</p>
                     </div>
                   )}
@@ -360,16 +439,78 @@ export default function LandingPage() {
               </div>
               <div>
                 <label className="block text-sm font-bold mb-1.5 text-gray-700">Password / PIN</label>
-                <input required type="password" placeholder="••••••••" className="w-full p-3 bg-gray-50 border rounded-xl outline-none font-bold tracking-widest text-sm" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} />
+                <input required type="password" className="w-full p-3 bg-gray-50 border rounded-xl outline-none font-bold tracking-widest text-sm" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} />
               </div>
               {loginError && <p className="text-red-500 text-sm font-bold">{loginError}</p>}
               <button type="submit" disabled={isLoggingIn} className="w-full bg-black text-white font-bold py-3.5 mt-2 rounded-xl hover:bg-gray-800 transition-colors shadow-md disabled:bg-gray-400">
                 {isLoggingIn ? 'Verifying...' : 'Go to Portal'}
               </button>
             </form>
+            
+            {/* UPDATED: FORGOT PASSWORD BUTTON */}
             <div className="mt-6 text-center">
-              <a href={whatsappForgotPinUrl} target="_blank" rel="noreferrer" className="text-sm text-blue-600 hover:underline font-bold">Forgot Login Details?</a>
+              <button type="button" onClick={() => { setIsLoginOpen(false); setIsForgotOpen(true); }} className="text-sm text-blue-600 hover:underline font-bold cursor-pointer">
+                Forgot Login Details?
+              </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* NEW: FORGOT PASSWORD & RECOVERY MODAL */}
+      {isForgotOpen && (
+        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm relative animate-slide-in">
+            <button type="button" onClick={cancelForgot} className="absolute top-4 right-4 text-gray-400 hover:text-black p-2 bg-gray-50 rounded-full w-8 h-8 flex items-center justify-center font-bold cursor-pointer"><CloseIcon /></button>
+            <h2 className="text-2xl font-bold mb-2">Reset Password</h2>
+            
+            {forgotStep === 1 && (
+              <>
+                <p className="text-gray-500 text-sm font-medium mb-6">Enter your registered email address to receive a recovery code.</p>
+                <form onSubmit={handleForgotStep1} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-bold mb-1.5 text-gray-700">Email Address</label>
+                    <input required type="email" className="w-full p-3 bg-gray-50 border rounded-xl outline-none font-bold text-sm" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} />
+                  </div>
+                  {forgotError && <p className="text-red-500 text-sm font-bold">{forgotError}</p>}
+                  <button type="submit" disabled={isForgotSubmitting} className="w-full bg-black text-white font-bold py-3.5 mt-2 rounded-xl hover:bg-gray-800 transition-colors shadow-md disabled:bg-gray-400">
+                    {isForgotSubmitting ? 'Checking...' : 'Send Recovery Code'}
+                  </button>
+                </form>
+              </>
+            )}
+
+            {forgotStep === 2 && (
+              <>
+                <p className="text-gray-500 text-sm font-medium mb-6">Enter the 6-digit code sent to <strong>{forgotEmail}</strong>.</p>
+                <form onSubmit={handleForgotStep2} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-bold mb-1.5 text-gray-700">6-Digit Code</label>
+                    <input required type="text" maxLength="6" className="w-full p-3 bg-gray-50 border rounded-xl outline-none font-bold text-center tracking-[0.5em] text-xl" value={forgotOtpCode} onChange={e => setForgotOtpCode(e.target.value.replace(/\D/g, ''))} />
+                  </div>
+                  {forgotError && <p className="text-red-500 text-sm font-bold">{forgotError}</p>}
+                  <button type="submit" disabled={isForgotSubmitting} className="w-full bg-black text-white font-bold py-3.5 mt-2 rounded-xl hover:bg-gray-800 transition-colors shadow-md disabled:bg-gray-400">
+                    {isForgotSubmitting ? 'Verifying...' : 'Verify Code'}
+                  </button>
+                </form>
+              </>
+            )}
+
+            {forgotStep === 3 && (
+              <>
+                <p className="text-gray-500 text-sm font-medium mb-6">Code verified! Create a new password for your store.</p>
+                <form onSubmit={handleForgotStep3} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-bold mb-1.5 text-gray-700">New Password</label>
+                    <input required type="password" minLength="6" className="w-full p-3 bg-gray-50 border rounded-xl outline-none font-bold font-mono tracking-widest text-sm" value={forgotNewPassword} onChange={e => setForgotNewPassword(e.target.value)} />
+                  </div>
+                  {forgotError && <p className="text-red-500 text-sm font-bold">{forgotError}</p>}
+                  <button type="submit" disabled={isForgotSubmitting} className="w-full bg-black text-white font-bold py-3.5 mt-2 rounded-xl hover:bg-gray-800 transition-colors shadow-md disabled:bg-gray-400">
+                    {isForgotSubmitting ? 'Saving...' : 'Reset Password'}
+                  </button>
+                </form>
+              </>
+            )}
           </div>
         </div>
       )}

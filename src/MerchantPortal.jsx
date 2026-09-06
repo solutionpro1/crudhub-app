@@ -106,14 +106,12 @@ export default function MerchantPortal() {
 
     // AUTH LOGIC
     if (isGodMode) {
-      // Admin bypasses everything straight to the dashboard
       setIsFirstTimeSetup(false)
       setIsAuthenticated(true)
       fetchOrders(currentMerchant.id)
       fetchProducts(currentMerchant.id)
     } else if (isMerchantSession) {
       if (!currentMerchant.contact_email || !currentMerchant.pin_code) {
-        // Merchant is logged in but hasn't set up email yet
         setIsFirstTimeSetup(true)
       } else {
         setIsAuthenticated(true)
@@ -128,9 +126,7 @@ export default function MerchantPortal() {
   async function handleGoogleLogin() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: {
-        redirectTo: window.location.href // Redirect right back to this lock screen
-      }
+      options: { redirectTo: window.location.href }
     })
     if (error) alert('Google Sign-In Error: ' + error.message)
   }
@@ -138,9 +134,7 @@ export default function MerchantPortal() {
   async function handleGoogleLink() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: {
-        redirectTo: window.location.href // Brings them right back to this portal page
-      }
+      options: { redirectTo: window.location.href }
     })
     if (error) alert('Google Sign-In Error: ' + error.message)
   }
@@ -216,19 +210,23 @@ export default function MerchantPortal() {
     const { data } = await supabase.from('orders').select('*').eq('merchant_id', merchantId).order('created_at', { ascending: false })
     setOrders(data || [])
   }
+  
   async function fetchProducts(merchantId) {
     const { data } = await supabase.from('products').select('*').eq('merchant_id', merchantId)
     setProducts(data || [])
   }
+  
   async function updateOrderStatus(orderId, newStatus) {
     const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId)
     if (!error) fetchOrders(merchant.id)
   }
+  
   async function handleResetAnalytics() {
     if (!window.confirm("Are you sure you want to reset your analytics?")) return
     const { error } = await supabase.from('orders').delete().eq('merchant_id', merchant.id)
     if (!error) { setOrders([]); alert('Analytics reset to zero successfully!') }
   }
+  
   async function uploadFile(file, pathPrefix) {
     if (!file) return null
     const fileExt = file.name.split('.').pop()
@@ -238,6 +236,7 @@ export default function MerchantPortal() {
     const { data } = supabase.storage.from('crudhub-images').getPublicUrl(fileName)
     return data.publicUrl
   }
+  
   async function searchStoreAddress(query) {
     setMapSearchQuery(query)
     if (query.length < 4) { setAddressSuggestions([]); return }
@@ -246,10 +245,12 @@ export default function MerchantPortal() {
       const data = await res.json(); setAddressSuggestions(data)
     } catch (e) { console.error(e) }
   }
+  
   function selectStoreAddress(suggestion) {
     setEditMerchant({ ...editMerchant, store_lat: parseFloat(suggestion.lat), store_lng: parseFloat(suggestion.lon) })
     setMapSearchQuery(suggestion.display_name); setAddressSuggestions([])
   }
+  
   function getStoreLocation() {
     if (!navigator.geolocation) return alert('Location services are not supported by your browser.')
     navigator.geolocation.getCurrentPosition(async (position) => {
@@ -265,28 +266,38 @@ export default function MerchantPortal() {
       }
     }, () => alert('Unable to retrieve location.'))
   }
+  
   async function handleUpdateSettings(e) {
     e.preventDefault(); setIsUploading(true); let logo_url = editMerchant.logo_url
     if (logoFile) { const uploadedUrl = await uploadFile(logoFile, `logos/${editMerchant.slug}`); if (uploadedUrl) logo_url = uploadedUrl }
+    
+    // UPDATED PAYLOAD WITH NEW HERO SETTINGS
     const { error } = await supabase.from('merchants').update({ 
       theme_color: editMerchant.theme_color, logo_url: logo_url, currency: editMerchant.currency,
       phone_number: editMerchant.phone_number, facebook_url: editMerchant.facebook_url, instagram_url: editMerchant.instagram_url, 
       linkedin_url: editMerchant.linkedin_url, tiktok_url: editMerchant.tiktok_url, x_url: editMerchant.x_url, 
-      contact_email: editMerchant.contact_email, physical_address: editMerchant.physical_address, hero_text: editMerchant.hero_text, 
-      hero_font: editMerchant.hero_font, hero_text_color: editMerchant.hero_text_color, delivery_enabled: editMerchant.delivery_enabled, 
-      delivery_rate_per_km: editMerchant.delivery_rate_per_km, store_lat: editMerchant.store_lat, store_lng: editMerchant.store_lng
+      contact_email: editMerchant.contact_email, physical_address: editMerchant.physical_address, 
+      hero_text: editMerchant.hero_text, hero_font: editMerchant.hero_font, hero_text_color: editMerchant.hero_text_color,
+      hero_font_size: editMerchant.hero_font_size, hero_is_bold: editMerchant.hero_is_bold, 
+      hero_is_italic: editMerchant.hero_is_italic, hero_is_underline: editMerchant.hero_is_underline, 
+      delivery_enabled: editMerchant.delivery_enabled, delivery_rate_per_km: editMerchant.delivery_rate_per_km, 
+      store_lat: editMerchant.store_lat, store_lng: editMerchant.store_lng
     }).eq('id', merchant.id)
+    
     if (!error) { alert('Settings updated!'); setMerchant({...editMerchant, logo_url}); setLogoFile(null) }
     setIsUploading(false)
   }
+  
   function handleAddVariant() {
     if (!variantInput.label) return
     setNewProduct({ ...newProduct, variants: [...(newProduct.variants || []), { label: variantInput.label, price: Number(variantInput.price) || 0 }] })
     setVariantInput({ label: '', price: '' })
   }
+  
   function removeVariant(index) {
     const updated = [...newProduct.variants]; updated.splice(index, 1); setNewProduct({ ...newProduct, variants: updated })
   }
+  
   async function handleSaveProduct(e) {
     e.preventDefault(); setIsProductUploading(true)
     let image_url = editingProductId ? products.find(p => p.id === editingProductId)?.image_url : null
@@ -296,18 +307,24 @@ export default function MerchantPortal() {
     else await supabase.from('products').insert([{ ...productPayload, merchant_id: merchant.id }])
     fetchProducts(merchant.id); cancelEdit(); setIsProductUploading(false)
   }
+  
   async function handleDeleteProduct(id) { if (window.confirm('Delete this item?')) { await supabase.from('products').delete().eq('id', id); fetchProducts(merchant.id) } }
+  
   function handleEditClick(product) { setEditingProductId(product.id); setNewProduct({ name: product.name, description: product.description || '', price: product.price, category: product.category, variants: product.variants || [] }); window.scrollTo({ top: 0, behavior: 'smooth' }) }
+  
   function cancelEdit() { setEditingProductId(null); setNewProduct({ name: '', description: '', price: '', category: '', variants: [] }); setProductImageFile(null); const fileInput = document.getElementById('product-image'); if (fileInput) fileInput.value = '' }
+  
   function getDaysRemaining(endDateString) {
     if (!endDateString) return 0
     const end = new Date(endDateString); const today = new Date(); return Math.ceil((end - today) / (1000 * 60 * 60 * 24))
   }
+  
   async function handleShareStore() {
     const storeUrl = `https://crudhub.com.ng/${merchant.slug}`
     if (navigator.share) { try { await navigator.share({ title: merchant.business_name, text: 'Order on WhatsApp!', url: storeUrl }) } catch (err) {} } 
     else { navigator.clipboard.writeText(storeUrl); alert('Store link copied!') }
   }
+  
   async function handleClearNotification() {
     const { error } = await supabase.from('merchants').update({ admin_message: null }).eq('id', merchant.id)
     if (!error) { setMerchant({ ...merchant, admin_message: null }); setEditMerchant({ ...editMerchant, admin_message: null }); setIsNotificationsOpen(false) }
@@ -344,10 +361,10 @@ export default function MerchantPortal() {
             </div>
             <div>
               <label className="block text-sm font-bold mb-1 text-gray-700">New Password</label>
-              <input required type="password" minLength="6" className="w-full border p-3 rounded-xl bg-gray-50 outline-none font-mono" value={setupPassword} onChange={e => setSetupPassword(e.target.value)} placeholder="••••••••" />
+              <input required type="password" minLength="6" className="w-full border p-3 rounded-xl bg-gray-50 outline-none font-mono" value={setupPassword} onChange={e => setSetupPassword(e.target.value)} placeholder="********" />
             </div>
             {setupError && <p className="text-red-500 text-sm font-bold">{setupError}</p>}
-            <button type="submit" className="w-full bg-black text-white font-bold py-3.5 rounded-xl mt-2 shadow-md">Save & Proceed to Dashboard</button>
+            <button type="submit" className="w-full bg-black text-white font-bold py-3.5 rounded-xl mt-2 shadow-md hover:bg-gray-800 transition">Save & Proceed to Dashboard</button>
           </form>
         </div>
       </div>
@@ -381,7 +398,7 @@ export default function MerchantPortal() {
             </div>
             <div>
               <label className="block text-sm font-bold mb-1.5 text-gray-700">Password</label>
-              <input required type="password" className="w-full border p-3 rounded-xl bg-gray-50 outline-none focus:ring-2 focus:ring-black" value={loginPassword} onChange={e => { setLoginPassword(e.target.value); setAuthError('') }} />
+              <input required type="password" placeholder="********" className="w-full border p-3 rounded-xl bg-gray-50 outline-none focus:ring-2 focus:ring-black" value={loginPassword} onChange={e => { setLoginPassword(e.target.value); setAuthError('') }} />
             </div>
             {authError && <p className="text-red-500 text-sm font-bold text-center">{authError}</p>}
             <button type="submit" className="w-full text-white font-bold py-3.5 rounded-xl text-lg shadow-sm transition-transform active:scale-95 mt-2" style={{ backgroundColor: merchant.theme_color || '#000' }}>Unlock Portal</button>
@@ -394,135 +411,439 @@ export default function MerchantPortal() {
   const storeUrl = `https://crudhub.com.ng/${merchant.slug}`
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(storeUrl)}`
   const currency = merchant.currency || '₦'
-  const daysLeft = getDaysRemaining(merchant.subscription_end_date)
-  const showWarning = daysLeft <= 3
-  const isExpired = daysLeft < 0
 
+  // --- PORTAL UI ---
   return (
     <div className="min-h-screen bg-gray-100 font-sans pb-20">
+      
+      {/* TOP NAVIGATION BAR */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm relative">
         <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3 sm:gap-4">
-            {merchant.logo_url && <img src={merchant.logo_url} alt="Logo" className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover border hidden sm:block" />}
-            <h1 className="text-lg sm:text-xl font-black text-gray-900 truncate">{merchant.business_name}</h1>
+            {merchant.logo_url ? (
+              <img src={merchant.logo_url} alt="Logo" className="w-10 h-10 rounded-full object-cover border-2 shadow-sm" style={{ borderColor: merchant.theme_color || '#000' }} />
+            ) : (
+              <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white shadow-sm" style={{ backgroundColor: merchant.theme_color || '#000' }}>{merchant.business_name.charAt(0)}</div>
+            )}
+            <h1 className="text-xl font-black text-gray-900 truncate tracking-tight">{merchant.business_name} Workspace</h1>
           </div>
-          <div className="flex items-center gap-2 sm:gap-4">
-            <button onClick={handleLogout} className="text-gray-500 hover:text-red-600 font-bold text-sm bg-gray-50 px-4 py-2.5 rounded-xl border hover:bg-red-50 transition-colors">Log Out</button>
-          </div>
+          <button onClick={handleLogout} className="text-gray-600 hover:text-red-600 font-bold text-sm bg-gray-50 px-4 py-2.5 rounded-xl border border-gray-200 hover:bg-red-50 hover:border-red-200 transition-colors cursor-pointer shadow-sm">
+            Log Out
+          </button>
         </div>
       </div>
 
       <div className={`max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-8 mt-8`}>
+        
+        {/* SIDEBAR NAVIGATION */}
         <div className="space-y-6">
-          <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Your Store Link</p>
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm font-bold text-gray-800 break-all mb-4">crudhub.com.ng/{merchant.slug}</div>
-            <button onClick={handleShareStore} className="w-full bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700">Share Store</button>
+          <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm text-center">
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Live Store Link</p>
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm font-bold text-gray-800 break-all mb-4 truncate shadow-inner">
+              crudhub.com.ng/{merchant.slug}
+            </div>
+            <button onClick={handleShareStore} className="w-full text-white py-3 rounded-xl font-bold shadow-md hover:opacity-90 transition-opacity flex items-center justify-center gap-2 cursor-pointer" style={{ backgroundColor: merchant.theme_color || '#000' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+              Share Store
+            </button>
           </div>
-          <div className="space-y-2">
-            <button onClick={() => setActiveTab('dashboard')} className={`w-full text-left px-5 py-4 rounded-xl font-bold ${activeTab === 'dashboard' ? 'bg-black text-white' : 'bg-white text-gray-700 border'}`}>Dashboard</button>
-            <button onClick={() => setActiveTab('orders')} className={`w-full text-left px-5 py-4 rounded-xl font-bold ${activeTab === 'orders' ? 'bg-black text-white' : 'bg-white text-gray-700 border'}`}>Order History</button>
-            <button onClick={() => setActiveTab('qr')} className={`w-full text-left px-5 py-4 rounded-xl font-bold ${activeTab === 'qr' ? 'bg-black text-white' : 'bg-white text-gray-700 border'}`}>Store QR Code</button>
-            <button onClick={() => setActiveTab('catalog')} className={`w-full text-left px-5 py-4 rounded-xl font-bold ${activeTab === 'catalog' ? 'bg-black text-white' : 'bg-white text-gray-700 border'}`}>My Catalog</button>
-            <button onClick={() => setActiveTab('settings')} className={`w-full text-left px-5 py-4 rounded-xl font-bold ${activeTab === 'settings' ? 'bg-black text-white' : 'bg-white text-gray-700 border'}`}>Store Settings</button>
+
+          <div className="space-y-2 bg-white p-3 rounded-2xl border border-gray-200 shadow-sm">
+            {[
+              { id: 'dashboard', label: 'Dashboard', icon: 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z' },
+              { id: 'orders', label: 'Order History', icon: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z' },
+              { id: 'catalog', label: 'Inventory Manager', icon: 'M20 16.2A23.84 23.84 0 0 1 12 22a23.84 23.84 0 0 1-8-5.8M12 2v20' },
+              { id: 'qr', label: 'Store QR Code', icon: 'M4 4h6v6H4z M14 4h6v6h-6z M4 14h6v6H4z' },
+              { id: 'settings', label: 'Store Settings', icon: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z' }
+            ].map(tab => (
+              <button 
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)} 
+                className={`w-full text-left px-5 py-3.5 rounded-xl font-bold flex items-center gap-3 transition-colors cursor-pointer ${activeTab === tab.id ? 'bg-gray-100 text-gray-900 shadow-inner' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d={tab.icon}/>
+                </svg>
+                {tab.label}
+              </button>
+            ))}
           </div>
         </div>
 
+        {/* MAIN CONTENT AREA */}
         <div className="md:col-span-3">
+          
+          {/* TAB 1: DASHBOARD */}
           {activeTab === 'dashboard' && (
-            <div className="space-y-6">
-              <div className="flex justify-between items-center bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
-                <div><h2 className="text-xl font-bold text-gray-900">Performance Overview</h2></div>
-                <button onClick={handleResetAnalytics} className="bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-xl text-xs font-bold">Reset Analytics</button>
+            <div className="space-y-6 animate-slide-in">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white p-6 rounded-2xl border border-gray-200 shadow-sm gap-4">
+                <div>
+                  <h2 className="text-2xl font-black text-gray-900 tracking-tight">Overview</h2>
+                  <p className="text-gray-500 text-sm font-medium mt-1">Monitor your store's real-time performance.</p>
+                </div>
+                <button onClick={handleResetAnalytics} className="bg-white text-red-600 border border-red-200 px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-50 transition-colors shadow-sm cursor-pointer">
+                  Reset Analytics
+                </button>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white p-6 rounded-2xl border"><p className="text-sm font-bold text-gray-500">Total Sales</p><h3 className="text-3xl font-black">{currency}{totalRevenue.toLocaleString()}</h3></div>
-                <div className="bg-white p-6 rounded-2xl border"><p className="text-sm font-bold text-gray-500">Total Orders</p><h3 className="text-3xl font-black">{orders.length}</h3></div>
-                <div className="bg-white p-6 rounded-2xl border"><p className="text-sm font-bold text-gray-500">Needs Action</p><h3 className="text-3xl font-black">{pendingOrdersCount}</h3></div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'orders' && (
-            <div className="bg-white rounded-2xl border overflow-hidden p-6">
-              <h2 className="text-xl font-bold mb-4">Recent Orders</h2>
-              <table className="w-full text-left">
-                <thead><tr className="border-b text-xs text-gray-500"><th className="p-3">Date</th><th className="p-3">Customer</th><th className="p-3">Total</th><th className="p-3">Status</th></tr></thead>
-                <tbody>
-                  {orders.map(o => (
-                    <tr key={o.id} className="border-b">
-                      <td className="p-3 text-sm">{new Date(o.created_at).toLocaleDateString()}</td>
-                      <td className="p-3 font-bold">{o.customer_name}</td>
-                      <td className="p-3 font-bold text-green-700">{currency}{Number(o.total_amount).toLocaleString()}</td>
-                      <td className="p-3"><span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-bold rounded">{o.status}</span></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {activeTab === 'qr' && (
-            <div className="bg-white rounded-2xl border p-8 text-center max-w-lg mx-auto">
-              <h2 className="text-2xl font-bold mb-4">Store QR Code</h2>
-              <img src={qrCodeUrl} alt="QR" className="w-48 h-48 mx-auto mb-4 border rounded" />
-            </div>
-          )}
-
-          {activeTab === 'catalog' && (
-            <div className="bg-white rounded-2xl border p-6">
-              <h2 className="text-xl font-bold mb-4">Manage Menu</h2>
-              <form onSubmit={handleSaveProduct} className="space-y-4 mb-6 bg-gray-50 p-4 rounded-xl border">
-                <input required placeholder="Item Name" className="w-full border p-2.5 rounded-lg bg-white" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
-                <input required type="number" placeholder="Price" className="w-full border p-2.5 rounded-lg bg-white" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} />
-                <input required placeholder="Category" className="w-full border p-2.5 rounded-lg bg-white" value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} />
-                <button type="submit" className="bg-black text-white px-6 py-2.5 rounded-lg font-bold">Save Product</button>
-              </form>
-              <div className="space-y-3">
-                {products.map(p => (
-                  <div key={p.id} className="flex justify-between p-3 border rounded-xl items-center bg-gray-50">
-                    <span className="font-bold">{p.name} - {currency}{p.price}</span>
-                    <button onClick={() => handleDeleteProduct(p.id)} className="bg-red-50 text-red-600 px-3 py-1 rounded font-bold text-sm">Delete</button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'settings' && (
-            <div className="bg-white rounded-2xl border p-6 max-w-2xl space-y-8">
-              <h2 className="text-xl font-bold text-gray-800">Store Settings</h2>
               
-              <div className="p-5 bg-gray-50 rounded-xl border border-gray-200">
-                <h3 className="font-bold text-gray-900 mb-3">Security & Password</h3>
-                <form onSubmit={handleChangePassword} className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-600 mb-1">Current Password</label>
-                    <input required type="password" className="w-full border p-2.5 rounded-lg bg-white" value={passwordForm.current} onChange={e => setPasswordForm({...passwordForm, current: e.target.value})} />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-4 opacity-10"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+                  <p className="text-sm font-bold text-gray-500 mb-1">Total Revenue</p>
+                  <h3 className="text-4xl font-black text-gray-900">{currency}{totalRevenue.toLocaleString()}</h3>
+                </div>
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-4 opacity-10"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg></div>
+                  <p className="text-sm font-bold text-gray-500 mb-1">Total Orders</p>
+                  <h3 className="text-4xl font-black text-gray-900">{orders.length}</h3>
+                </div>
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-4 opacity-10"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg></div>
+                  <p className="text-sm font-bold text-gray-500 mb-1">Pending Orders</p>
+                  <h3 className="text-4xl font-black text-yellow-600">{pendingOrdersCount}</h3>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: ORDER HISTORY (Basic List for now) */}
+          {activeTab === 'orders' && (
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden animate-slide-in">
+              <div className="p-6 border-b border-gray-100">
+                <h2 className="text-2xl font-black tracking-tight">Order History</h2>
+              </div>
+              <div className="overflow-x-auto p-6">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b-2 border-gray-100 text-xs text-gray-400 uppercase tracking-wider">
+                      <th className="pb-3 font-bold">Date</th>
+                      <th className="pb-3 font-bold">Customer</th>
+                      <th className="pb-3 font-bold">Total</th>
+                      <th className="pb-3 font-bold">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orders.length === 0 ? (
+                      <tr><td colSpan="4" className="py-8 text-center text-gray-500 font-medium">No orders yet.</td></tr>
+                    ) : orders.map(o => (
+                      <tr key={o.id} className="border-b border-gray-50 hover:bg-gray-50">
+                        <td className="py-4 text-sm font-medium text-gray-600">{new Date(o.created_at).toLocaleDateString()}</td>
+                        <td className="py-4 font-bold text-gray-900">{o.customer_name}</td>
+                        <td className="py-4 font-black text-green-600">{currency}{Number(o.total_amount).toLocaleString()}</td>
+                        <td className="py-4">
+                          <span className={`px-3 py-1 text-xs font-bold rounded-full ${o.status === 'Completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                            {o.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: QR CODE */}
+          {activeTab === 'qr' && (
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-10 text-center mx-auto animate-slide-in">
+              <h2 className="text-2xl font-black mb-2 tracking-tight">Print & Scan</h2>
+              <p className="text-gray-500 text-sm font-medium mb-8">Customers can scan this code to instantly open your store menu.</p>
+              <div className="inline-block p-4 bg-gray-50 rounded-2xl border border-gray-200 shadow-inner mb-6">
+                <img src={qrCodeUrl} alt="Store QR Code" className="w-64 h-64 mx-auto rounded-xl" />
+              </div>
+              <button onClick={() => window.open(qrCodeUrl, '_blank')} className="block mx-auto bg-black text-white px-8 py-3 rounded-xl font-bold shadow-md hover:bg-gray-800 transition-colors">
+                Download High-Res QR
+              </button>
+            </div>
+          )}
+
+          {/* TAB 4: INVENTORY MANAGER (Catalog) */}
+          {activeTab === 'catalog' && (
+            <div className="space-y-8 animate-slide-in">
+              
+              {/* Add/Edit Product Form */}
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-8 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1" style={{ backgroundColor: merchant.theme_color || '#000' }}></div>
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-black tracking-tight">{editingProductId ? 'Edit Product' : 'Add New Product'}</h2>
+                  {editingProductId && <button onClick={cancelEdit} className="text-sm font-bold text-gray-500 hover:text-gray-900 bg-gray-100 px-4 py-2 rounded-lg cursor-pointer">Cancel Edit</button>}
+                </div>
+                
+                <form onSubmit={handleSaveProduct} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">Product Name</label>
+                      <input required className="w-full border border-gray-200 p-3.5 rounded-xl bg-gray-50 outline-none focus:ring-2 focus:ring-black font-medium" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} placeholder="e.g. Classic Burger" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">Base Price ({currency})</label>
+                      <input required type="number" className="w-full border border-gray-200 p-3.5 rounded-xl bg-gray-50 outline-none focus:ring-2 focus:ring-black font-bold text-green-700" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} placeholder="0.00" />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-600 mb-1">New Password</label>
-                    <input required type="password" minLength="6" className="w-full border p-2.5 rounded-lg bg-white" value={passwordForm.newPass} onChange={e => setPasswordForm({...passwordForm, newPass: e.target.value})} />
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">Category</label>
+                      <input required className="w-full border border-gray-200 p-3.5 rounded-xl bg-gray-50 outline-none focus:ring-2 focus:ring-black font-medium" value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} placeholder="e.g. Mains, Drinks" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">Product Image (Optional)</label>
+                      <input type="file" id="product-image" accept="image/*" onChange={e => setProductImageFile(e.target.files[0])} className="w-full border border-gray-200 p-2.5 rounded-xl bg-gray-50 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-gray-200 file:text-gray-700 hover:file:bg-gray-300 cursor-pointer" />
+                    </div>
                   </div>
+
                   <div>
-                    <label className="block text-xs font-bold text-gray-600 mb-1">Confirm New Password</label>
-                    <input required type="password" minLength="6" className="w-full border p-2.5 rounded-lg bg-white" value={passwordForm.confirm} onChange={e => setPasswordForm({...passwordForm, confirm: e.target.value})} />
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Description (Optional)</label>
+                    <textarea rows="2" className="w-full border border-gray-200 p-3.5 rounded-xl bg-gray-50 outline-none focus:ring-2 focus:ring-black font-medium resize-none" value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})} placeholder="Briefly describe this item..." />
                   </div>
-                  {passwordMessage && <p className={`text-sm font-bold ${passwordMessage.includes('success') ? 'text-green-600' : 'text-red-600'}`}>{passwordMessage}</p>}
-                  <button type="submit" className="bg-black text-white px-5 py-2 rounded-lg font-bold text-sm">Update Password</button>
+
+                  {/* Add-ons and Variations Builder */}
+                  <div className="p-5 bg-blue-50 border border-blue-100 rounded-xl">
+                    <h3 className="font-bold text-blue-900 mb-2">Add-ons & Variations (Optional)</h3>
+                    <p className="text-xs text-blue-700 mb-4 font-medium">Allow customers to select extras (e.g., Large Size, Extra Cheese).</p>
+                    
+                    <div className="flex gap-2 mb-4">
+                      <input placeholder="e.g. Extra Cheese" className="flex-grow border border-blue-200 p-3 rounded-lg bg-white outline-none font-medium text-sm" value={variantInput.label} onChange={e => setVariantInput({...variantInput, label: e.target.value})} />
+                      <input type="number" placeholder="+ Price" className="w-28 border border-blue-200 p-3 rounded-lg bg-white outline-none font-bold text-sm text-green-700" value={variantInput.price} onChange={e => setVariantInput({...variantInput, price: e.target.value})} />
+                      <button type="button" onClick={handleAddVariant} className="bg-blue-600 text-white px-4 py-3 rounded-lg font-bold hover:bg-blue-700 cursor-pointer text-sm whitespace-nowrap">Add</button>
+                    </div>
+
+                    {newProduct.variants && newProduct.variants.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {newProduct.variants.map((v, i) => (
+                          <div key={i} className="flex items-center gap-2 bg-white border border-blue-200 px-3 py-1.5 rounded-full text-sm shadow-sm">
+                            <span className="font-bold text-gray-700">{v.label}</span>
+                            <span className="text-green-600 font-black text-xs">+{currency}{v.price}</span>
+                            <button type="button" onClick={() => removeVariant(i)} className="text-red-400 hover:text-red-600 font-black ml-1 cursor-pointer">X</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <button type="submit" disabled={isProductUploading} className="w-full text-white px-6 py-4 rounded-xl font-bold shadow-md hover:opacity-90 transition-opacity disabled:bg-gray-400 text-lg" style={{ backgroundColor: merchant.theme_color || '#000' }}>
+                    {isProductUploading ? 'Saving...' : (editingProductId ? 'Update Product' : 'Add to Catalog')}
+                  </button>
                 </form>
               </div>
 
-              <form onSubmit={handleUpdateSettings} className="space-y-4">
-                <div><label className="block text-sm font-bold mb-1">WhatsApp / Phone Number</label><input type="tel" className="w-full border p-2.5 rounded-lg" value={editMerchant.phone_number || ''} onChange={e => setEditMerchant({...editMerchant, phone_number: e.target.value})} /></div>
-                <div><label className="block text-sm font-bold mb-1">Business Email</label><input type="email" className="w-full border p-2.5 rounded-lg" value={editMerchant.contact_email || ''} onChange={e => setEditMerchant({...editMerchant, contact_email: e.target.value})} /></div>
-                <button type="submit" className="bg-black text-white px-6 py-3 rounded-xl font-bold w-full">Save Changes</button>
+              {/* Product List */}
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-8">
+                <h2 className="text-2xl font-black tracking-tight mb-6">Current Inventory</h2>
+                {products.length === 0 ? (
+                  <div className="text-center py-10 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+                    <p className="text-gray-500 font-medium">Your catalog is empty. Add your first product above!</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {products.map(p => (
+                      <div key={p.id} className="flex gap-4 p-4 border border-gray-100 rounded-2xl bg-white shadow-sm hover:shadow-md transition-shadow relative group">
+                        {p.image_url ? (
+                          <img src={p.image_url} alt={p.name} className="w-20 h-20 object-cover rounded-xl border border-gray-100 shadow-sm flex-shrink-0" />
+                        ) : (
+                          <div className="w-20 h-20 bg-gray-100 rounded-xl border border-gray-200 flex items-center justify-center flex-shrink-0">
+                            <svg width="24" height="24" className="text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                          </div>
+                        )}
+                        <div className="flex-grow min-w-0">
+                          <h3 className="font-black text-gray-900 truncate">{p.name}</h3>
+                          <p className="text-xs font-bold text-gray-500 mb-1">{p.category}</p>
+                          <p className="font-black text-green-600 text-lg">{currency}{p.price}</p>
+                          {p.variants && p.variants.length > 0 && (
+                            <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-wider">{p.variants.length} Add-on(s)</p>
+                          )}
+                        </div>
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-1">
+                          <button onClick={() => handleEditClick(p)} className="bg-gray-100 text-gray-600 p-2 rounded-lg hover:bg-gray-200 shadow-sm cursor-pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                          <button onClick={() => handleDeleteProduct(p.id)} className="bg-red-50 text-red-600 p-2 rounded-lg hover:bg-red-100 shadow-sm cursor-pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 5: STORE SETTINGS */}
+          {activeTab === 'settings' && (
+            <div className="space-y-8 animate-slide-in">
+              <form onSubmit={handleUpdateSettings}>
+                
+                {/* Branding & Appearance */}
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-8 mb-8">
+                  <h2 className="text-xl font-black mb-6 border-b pb-4">Branding & Appearance</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">Store Logo</label>
+                      <input type="file" accept="image/*" onChange={e => setLogoFile(e.target.files[0])} className="w-full border border-gray-200 p-2.5 rounded-xl bg-gray-50 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-gray-200 file:text-gray-700 hover:file:bg-gray-300 cursor-pointer" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">Brand Theme Color</label>
+                      <div className="flex items-center gap-3">
+                        <input type="color" className="w-12 h-12 rounded cursor-pointer border-0 p-0" value={editMerchant.theme_color || '#000000'} onChange={e => setEditMerchant({...editMerchant, theme_color: e.target.value})} />
+                        <input type="text" className="flex-grow border border-gray-200 p-3 rounded-xl bg-gray-50 outline-none font-mono text-sm uppercase" value={editMerchant.theme_color || '#000000'} onChange={e => setEditMerchant({...editMerchant, theme_color: e.target.value})} />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">Store Currency Symbol</label>
+                      <select className="w-full border border-gray-200 p-3.5 rounded-xl bg-gray-50 outline-none font-bold" value={editMerchant.currency || '₦'} onChange={e => setEditMerchant({...editMerchant, currency: e.target.value})}>
+                        <option value="₦">NGN (₦)</option>
+                        <option value="$">USD ($)</option>
+                        <option value="£">GBP (£)</option>
+                        <option value="€">EUR (€)</option>
+                        <option value="GH₵">GHS (GH₵)</option>
+                        <option value="FG">GNF (FG)</option>
+                      </select>
+                    </div>
+
+                    {/* NEW: ADVANCED HERO TEXT STYLING BLOCK */}
+                    <div className="col-span-1 md:col-span-2 bg-gray-50 p-5 rounded-xl border border-gray-200 mt-2">
+                      <label className="block text-sm font-bold text-gray-900 mb-2">Hero Banner Message & Styling</label>
+                      <input type="text" className="w-full border border-gray-200 p-3.5 rounded-xl bg-white outline-none font-medium mb-4 shadow-sm" value={editMerchant.hero_text || ''} onChange={e => setEditMerchant({...editMerchant, hero_text: e.target.value})} placeholder="e.g. Welcome to our store!" />
+                      
+                      <div className="flex flex-wrap gap-4 items-center">
+                        <div className="flex items-center gap-2 bg-white border border-gray-200 p-1.5 rounded-lg shadow-sm">
+                          <span className="text-xs font-bold text-gray-500 pl-2">Color:</span>
+                          <input type="color" className="w-8 h-8 rounded cursor-pointer border-0 p-0" value={editMerchant.hero_text_color || '#000000'} onChange={e => setEditMerchant({...editMerchant, hero_text_color: e.target.value})} />
+                        </div>
+                        
+                        <div className="flex items-center gap-2 bg-white border border-gray-200 p-1.5 rounded-lg shadow-sm">
+                          <span className="text-xs font-bold text-gray-500 pl-2">Font:</span>
+                          <select className="border-none bg-transparent outline-none text-sm font-bold pr-2" value={editMerchant.hero_font || 'sans'} onChange={e => setEditMerchant({...editMerchant, hero_font: e.target.value})}>
+                            <option value="sans">Sans-Serif</option>
+                            <option value="serif">Serif</option>
+                            <option value="mono">Monospace</option>
+                          </select>
+                        </div>
+
+                        <div className="flex items-center gap-2 bg-white border border-gray-200 p-1.5 rounded-lg shadow-sm">
+                          <span className="text-xs font-bold text-gray-500 pl-2">Size:</span>
+                          <select className="border-none bg-transparent outline-none text-sm font-bold pr-2" value={editMerchant.hero_font_size || 'text-3xl'} onChange={e => setEditMerchant({...editMerchant, hero_font_size: e.target.value})}>
+                            <option value="text-xl">Small</option>
+                            <option value="text-3xl">Medium</option>
+                            <option value="text-5xl">Large</option>
+                            <option value="text-7xl">Huge</option>
+                          </select>
+                        </div>
+
+                        <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg p-1 shadow-sm">
+                          <button type="button" onClick={() => setEditMerchant({...editMerchant, hero_is_bold: !editMerchant.hero_is_bold})} className={`w-8 h-8 rounded flex items-center justify-center font-serif font-bold transition-colors ${editMerchant.hero_is_bold ? 'bg-black text-white' : 'text-gray-600 hover:bg-gray-100'}`}>B</button>
+                          <button type="button" onClick={() => setEditMerchant({...editMerchant, hero_is_italic: !editMerchant.hero_is_italic})} className={`w-8 h-8 rounded flex items-center justify-center font-serif italic transition-colors ${editMerchant.hero_is_italic ? 'bg-black text-white' : 'text-gray-600 hover:bg-gray-100'}`}>I</button>
+                          <button type="button" onClick={() => setEditMerchant({...editMerchant, hero_is_underline: !editMerchant.hero_is_underline})} className={`w-8 h-8 rounded flex items-center justify-center font-serif underline transition-colors ${editMerchant.hero_is_underline ? 'bg-black text-white' : 'text-gray-600 hover:bg-gray-100'}`}>U</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Delivery Logistics */}
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-8 mb-8">
+                  <h2 className="text-xl font-black mb-6 border-b pb-4">Delivery & Location</h2>
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-3 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                      <input type="checkbox" id="delivery_enabled" checked={editMerchant.delivery_enabled || false} onChange={e => setEditMerchant({...editMerchant, delivery_enabled: e.target.checked})} className="w-5 h-5 accent-black cursor-pointer" />
+                      <label htmlFor="delivery_enabled" className="font-bold text-gray-900 cursor-pointer">Enable Smart GPS Delivery Integration</label>
+                    </div>
+                    
+                    {editMerchant.delivery_enabled && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-5 bg-blue-50 border border-blue-100 rounded-xl animate-slide-in">
+                        <div>
+                          <label className="block text-sm font-bold text-blue-900 mb-2">Delivery Rate per Kilometer ({currency})</label>
+                          <input type="number" className="w-full border border-blue-200 p-3.5 rounded-xl bg-white outline-none font-bold text-green-700" value={editMerchant.delivery_rate_per_km || ''} onChange={e => setEditMerchant({...editMerchant, delivery_rate_per_km: e.target.value})} placeholder="e.g. 500" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-bold text-blue-900 mb-2">Base Location for Calculations</label>
+                          <div className="flex gap-2">
+                            <input type="text" className="flex-grow border border-blue-200 p-3.5 rounded-xl bg-white outline-none font-medium text-sm" value={mapSearchQuery} onChange={e => searchStoreAddress(e.target.value)} placeholder="Search store address..." />
+                            <button type="button" onClick={getStoreLocation} className="bg-blue-600 text-white px-4 rounded-xl font-bold hover:bg-blue-700 cursor-pointer" title="Use current location">
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+                            </button>
+                          </div>
+                          {addressSuggestions.length > 0 && (
+                            <ul className="mt-2 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden absolute z-50 max-w-sm">
+                              {addressSuggestions.map((s, i) => (
+                                <li key={i} onClick={() => selectStoreAddress(s)} className="p-3 text-xs border-b hover:bg-blue-50 cursor-pointer truncate">{s.display_name}</li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* NEW: SOCIAL MEDIA PROFILES */}
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-8 mb-8">
+                  <h2 className="text-xl font-black mb-6 border-b pb-4">Social Media Profiles</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">Instagram URL</label>
+                      <input type="url" className="w-full border border-gray-200 p-3.5 rounded-xl bg-gray-50 outline-none font-medium" value={editMerchant.instagram_url || ''} onChange={e => setEditMerchant({...editMerchant, instagram_url: e.target.value})} placeholder="https://instagram.com/..." />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">Facebook URL</label>
+                      <input type="url" className="w-full border border-gray-200 p-3.5 rounded-xl bg-gray-50 outline-none font-medium" value={editMerchant.facebook_url || ''} onChange={e => setEditMerchant({...editMerchant, facebook_url: e.target.value})} placeholder="https://facebook.com/..." />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">X (Twitter) URL</label>
+                      <input type="url" className="w-full border border-gray-200 p-3.5 rounded-xl bg-gray-50 outline-none font-medium" value={editMerchant.x_url || ''} onChange={e => setEditMerchant({...editMerchant, x_url: e.target.value})} placeholder="https://x.com/..." />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">TikTok URL</label>
+                      <input type="url" className="w-full border border-gray-200 p-3.5 rounded-xl bg-gray-50 outline-none font-medium" value={editMerchant.tiktok_url || ''} onChange={e => setEditMerchant({...editMerchant, tiktok_url: e.target.value})} placeholder="https://tiktok.com/@..." />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">LinkedIn URL</label>
+                      <input type="url" className="w-full border border-gray-200 p-3.5 rounded-xl bg-gray-50 outline-none font-medium" value={editMerchant.linkedin_url || ''} onChange={e => setEditMerchant({...editMerchant, linkedin_url: e.target.value})} placeholder="https://linkedin.com/in/..." />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contact & Security */}
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-8 mb-8">
+                  <h2 className="text-xl font-black mb-6 border-b pb-4">Contact & Security</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">WhatsApp Order Number</label>
+                      <input type="tel" className="w-full border border-gray-200 p-3.5 rounded-xl bg-gray-50 outline-none font-bold" value={editMerchant.phone_number || ''} onChange={e => setEditMerchant({...editMerchant, phone_number: e.target.value})} placeholder="Must include country code, e.g. 234..." />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">Store Email Address</label>
+                      <input type="email" className="w-full border border-gray-200 p-3.5 rounded-xl bg-gray-50 outline-none font-medium" value={editMerchant.contact_email || ''} onChange={e => setEditMerchant({...editMerchant, contact_email: e.target.value})} />
+                    </div>
+                  </div>
+
+                  <div className="p-5 bg-gray-50 border border-gray-200 rounded-xl">
+                    <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                      Update Password
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <input type="password" placeholder="Current Password" className="w-full border border-gray-200 p-3 rounded-xl bg-white outline-none text-sm" value={passwordForm.current} onChange={e => setPasswordForm({...passwordForm, current: e.target.value})} />
+                      <input type="password" placeholder="New Password" minLength="6" className="w-full border border-gray-200 p-3 rounded-xl bg-white outline-none text-sm" value={passwordForm.newPass} onChange={e => setPasswordForm({...passwordForm, newPass: e.target.value})} />
+                      <div className="flex gap-2">
+                        <input type="password" placeholder="Confirm New" minLength="6" className="w-full border border-gray-200 p-3 rounded-xl bg-white outline-none text-sm" value={passwordForm.confirm} onChange={e => setPasswordForm({...passwordForm, confirm: e.target.value})} />
+                        <button type="button" onClick={handleChangePassword} className="bg-gray-800 text-white px-4 rounded-xl font-bold hover:bg-black text-sm whitespace-nowrap shadow-sm">Save</button>
+                      </div>
+                    </div>
+                    {passwordMessage && <p className={`text-xs font-bold mt-2 ${passwordMessage.includes('success') ? 'text-green-600' : 'text-red-600'}`}>{passwordMessage}</p>}
+                  </div>
+                </div>
+
+                {/* Final Save Button */}
+                <div className="sticky bottom-4 z-50 bg-white/90 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-gray-200 flex justify-end">
+                  <button type="submit" disabled={isUploading} className="text-white px-10 py-4 rounded-xl font-bold shadow-lg hover:opacity-90 transition-opacity disabled:bg-gray-400 text-lg w-full sm:w-auto" style={{ backgroundColor: merchant.theme_color || '#000' }}>
+                    {isUploading ? 'Saving Configuration...' : 'Save All Settings'}
+                  </button>
+                </div>
               </form>
             </div>
           )}
+
         </div>
       </div>
-      <style dangerouslySetInnerHTML={{__html: `@keyframes slide-in { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } } .animate-slide-in { animation: slide-in 0.2s ease-out forwards; }`}} />
+      <style dangerouslySetInnerHTML={{__html: `@keyframes slide-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } } .animate-slide-in { animation: slide-in 0.2s ease-out forwards; } html { scroll-behavior: smooth; }`}} />
     </div>
   )
 }
